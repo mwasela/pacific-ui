@@ -6,8 +6,6 @@ import Register from "./Pages/auth/register";
 import Users from "./Pages/Users";
 import Visits from "./Pages/Visits";
 import VIP from "./Pages/VIP";
-import Settings from "./Pages/Settings";
-import VIPcash from "./Pages/VIPcash";
 
 
 const router = createBrowserRouter([
@@ -24,11 +22,6 @@ const router = createBrowserRouter([
                 element: <Register />
             },
             {
-                path: "/vip",
-                element: <VIP />
-
-            },
-            {
                 path: "/users",
                 element: <Users />
             },
@@ -37,14 +30,9 @@ const router = createBrowserRouter([
                 element: <Visits />
             },
             {
-                path: "/settings",
-                element: <Settings />
-            },
-            {
-                path: "/vipcash",
-                element: <VIPcash />
-            },
-
+                path: "/vip",
+                element: <VIP />
+            }
         ]
     },
     {

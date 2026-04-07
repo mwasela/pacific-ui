@@ -21,9 +21,9 @@ instance.interceptors.request.use(function (config) {
 instance.interceptors.response.use(function (response) {
     return response;
 }, function (error) {
-    if(error.response.status === 403){
+    if(error.response.status === 401){
         localStorage.removeItem('token');
-        window.location.href = '/Login';
+        window.location.href = '/login';
     }
     return Promise.reject(error);
 });

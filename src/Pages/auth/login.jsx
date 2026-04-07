@@ -43,6 +43,7 @@ export default function Login() {
                                     username: values.username,
                                     password: values.password,
                                 });
+
                                 localStorage.setItem("token", response.data.token);
                                 notification.success({
                                     message: "Login successful",

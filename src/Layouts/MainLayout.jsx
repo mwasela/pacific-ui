@@ -1,9 +1,9 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { FiUsers, FiMap, FiHome } from "react-icons/fi";
+import { FiUsers, FiMap, FiHome, FiDribbble, FiClipboard, FiSettings } from "react-icons/fi";
 import React, { useEffect, useState } from "react";
 import axios from "../helpers/axios";
 import { Layout, Menu, Avatar, Dropdown, message } from "antd";
-import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { UserOutlined, LogoutOutlined  } from "@ant-design/icons";
 
 const { Header, Sider, Content, Footer } = Layout;
 
@@ -28,7 +28,7 @@ export default function MainLayout() {
                 setUser(response.data);
             } catch (error) {
                 message.error("Failed to fetch user data");
-            }   
+            }
         };
         if (token) {
             fetchUser();
@@ -46,10 +46,25 @@ export default function MainLayout() {
             icon: <FiMap />,
             label: <Link to="/visits">Visits</Link>,
         },
-        user &&  user.role === 1 && {
+        {
+            key: "/vipcash",
+            icon: <FiClipboard />,
+            label: <Link to="/vipcash">VIP Payments</Link>,
+        },
+        {
+            key: "/vip",
+            icon: <FiDribbble />,
+            label: <Link to="/vip">VIP</Link>,
+        },
+        user && user.role === 1 && {
             key: "/users",
             icon: <FiUsers />,
             label: <Link to="/users">Users</Link>,
+        },
+        user && user.role === 1 && {
+            key: "/settings",
+            icon: <FiSettings />,
+            label: <Link to="/settings">Settings</Link>,
         },
     ];
 
