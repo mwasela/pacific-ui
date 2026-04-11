@@ -1,3 +1,3 @@
-const API_URL = 'http://localhost:9153';
+const API_URL = 'https://api.eastafricanparking.com';
 
 export { API_URL };

@@ -15,8 +15,8 @@ const visitStatusMap = {
 };
 
 const paidStatusMap = {
-  0: "Unpaid",
-  1: "Paid",
+  0: "Paid",
+  1: "Unpaid",
 };
 
 const formatDate = (value) => {
