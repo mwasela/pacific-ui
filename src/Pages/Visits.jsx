@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Tag, message, Button, Modal, Descriptions } from "antd";
+import { Card, Table, Tag, message, Button, Modal, Descriptions, Form, Input, Space } from "antd";
 import axios from "../helpers/axios";
 
 const statusColorMap = {
@@ -26,6 +26,18 @@ const formatDate = (value) => {
   return date.toLocaleString();
 };
 
+const normalizeKenyanPhone = (value = "") => {
+  const sanitized = value.replace(/[\s-]/g, "");
+  if (sanitized.startsWith("+254")) return `0${sanitized.slice(4)}`;
+  if (sanitized.startsWith("254")) return `0${sanitized.slice(3)}`;
+  return sanitized;
+};
+
+const isValidKenyanPhone = (value = "") => {
+  const normalized = normalizeKenyanPhone(value);
+  return /^0(7\d{8}|1\d{8})$/.test(normalized);
+};
+
 export default function Visits() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -36,6 +48,16 @@ export default function Visits() {
   });
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [isStkModalOpen, setIsStkModalOpen] = useState(false);
+  const [stkVisitId, setStkVisitId] = useState(null);
+  const [sendingStk, setSendingStk] = useState(false);
+  const [stkForm] = Form.useForm();
+
+  const getVisitId = (transaction) => transaction?.visit_id ?? transaction?.Visit?.id;
+  const isUnpaid = (transaction) => {
+    const paidStatus = transaction?.Visit?.paid_status ?? transaction?.paid_status;
+    return Number(paidStatus) === 1;
+  };
 
   const openVisitModal = (transaction) => {
     setSelectedTransaction(transaction || null);
@@ -45,6 +67,43 @@ export default function Visits() {
   const closeVisitModal = () => {
     setSelectedTransaction(null);
     setIsVisitModalOpen(false);
+  };
+
+  const openStkModal = (transaction) => {
+    setStkVisitId(getVisitId(transaction) ?? null);
+    stkForm.resetFields();
+    setIsStkModalOpen(true);
+  };
+
+  const closeStkModal = () => {
+    setStkVisitId(null);
+    setIsStkModalOpen(false);
+    stkForm.resetFields();
+  };
+
+  const sendStkPush = async () => {
+    try {
+      const values = await stkForm.validateFields();
+
+      if (!stkVisitId) {
+        message.error("Visit ID is missing for this record");
+        return;
+      }
+
+      setSendingStk(true);
+      await axios.post("/payment/unpaid/stk", {
+        visit_id: stkVisitId,
+        phone_no: normalizeKenyanPhone(values.phone_no),
+      });
+
+      message.success("STK push sent successfully");
+      closeStkModal();
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(error.response?.data?.message || "Failed to send STK push");
+    } finally {
+      setSendingStk(false);
+    }
   };
 
   const fetchTransactions = async (current = 1, pageSize = 10) => {
@@ -164,11 +223,20 @@ export default function Visits() {
       title: "Actions",
       dataIndex: "actions",
       fixed: "right",
-      width: 130,
+      width: 260,
       render: (_, record) => (
-        <Button onClick={() => openVisitModal(record)}>
-          View Visit
-        </Button>
+        <Space>
+          <Button onClick={() => openVisitModal(record)}>
+            View Visit
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => openStkModal(record)}
+            disabled={!isUnpaid(record)}
+          >
+            Send STK Push
+          </Button>
+        </Space>
       ),
     },
   ];
@@ -182,6 +250,7 @@ export default function Visits() {
           rowKey="id"
           loading={loading}
           columns={columns}
+          size="small"
           dataSource={data}
           scroll={{ x: "max-content" }}
           pagination={pagination}
@@ -213,6 +282,40 @@ export default function Visits() {
         ) : (
           <div>No visit details available.</div>
         )}
+      </Modal>
+
+      <Modal
+        title="Send STK Push"
+        open={isStkModalOpen}
+        onCancel={closeStkModal}
+        onOk={sendStkPush}
+        okText="Send STK Push"
+        confirmLoading={sendingStk}
+      >
+        <Form form={stkForm} layout="vertical">
+          <Form.Item label="Visit ID">
+            <Input value={stkVisitId ?? "-"} disabled />
+          </Form.Item>
+          <Form.Item
+            label="Phone Number"
+            name="phone_no"
+            rules={[
+              { required: true, message: "Phone number is required" },
+              {
+                validator: (_, value) => {
+                  if (!value || isValidKenyanPhone(value)) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(
+                    new Error("Enter a valid Kenyan phone number (e.g. 07XXXXXXXX, 01XXXXXXXX, 2547XXXXXXXX)")
+                  );
+                },
+              },
+            ]}
+          >
+            <Input placeholder="e.g. 0758337870" maxLength={13} />
+          </Form.Item>
+        </Form>
       </Modal>
     </>
   );
