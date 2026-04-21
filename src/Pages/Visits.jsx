@@ -41,6 +41,7 @@ const isValidKenyanPhone = (value = "") => {
 export default function Visits() {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [numberPlate, setNumberPlate] = useState("");
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -106,13 +107,14 @@ export default function Visits() {
     }
   };
 
-  const fetchTransactions = async (current = 1, pageSize = 10) => {
+  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate) => {
     setLoading(true);
     try {
       const res = await axios.get("/transactions/transactions", {
         params: {
           current,
           pageSize,
+          number_plate: plate || undefined,
         },
       });
 
@@ -137,6 +139,12 @@ export default function Visits() {
     fetchTransactions(1, pagination.pageSize);
   }, []);
 
+  const handleNumberPlateSearch = (event) => {
+    const value = event.target.value;
+    setNumberPlate(value);
+    fetchTransactions(1, pagination.pageSize, value);
+  };
+
   const columns = [
     {
       title: "ID",
@@ -152,6 +160,7 @@ export default function Visits() {
       title: "Number Plate",
       dataIndex: "number_plate",
       width: 130,
+      key:"number_plate",
     },
     {
       title: "Phone",
@@ -223,7 +232,7 @@ export default function Visits() {
       title: "Actions",
       dataIndex: "actions",
       fixed: "right",
-      width: 260,
+      width: 200,
       render: (_, record) => (
         <Space>
           <Button onClick={() => openVisitModal(record)}>
@@ -246,6 +255,13 @@ export default function Visits() {
   return (
     <>
       <Card title="Transactions / Visits" style={{ margin: 24 }}>
+        <Input
+          allowClear
+          placeholder="Search by number plate"
+          value={numberPlate}
+          onChange={handleNumberPlateSearch}
+          style={{ width: 320, marginBottom: 16 }}
+        />
         <Table
           rowKey="id"
           loading={loading}
@@ -254,7 +270,7 @@ export default function Visits() {
           dataSource={data}
           scroll={{ x: "max-content" }}
           pagination={pagination}
-          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize)}
+          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate)}
         />
       </Card>
 
