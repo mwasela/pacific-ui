@@ -61,6 +61,16 @@ export default function MainLayout() {
             icon: <FiUsers />,
             label: <Link to="/users">Users</Link>,
         },
+        {
+            key: "/reports",
+            icon: <FiClipboard />,
+            label: <Link to="/reports">Reports</Link>,
+        },
+        user && (user.role === 1 || user.role === 2) && {
+            key: "/financial",
+            icon: <FiClipboard />,
+            label: <Link to="/financial">Financial</Link>,
+        },
         user && user.role === 1 && {
             key: "/settings",
             icon: <FiSettings />,

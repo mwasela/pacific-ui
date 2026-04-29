@@ -8,6 +8,8 @@ import Visits from "./Pages/Visits";
 import VIP from "./Pages/VIP";
 import Settings from "./Pages/Settings";
 import VIPcash from "./Pages/VIPcash";
+import Reports from "./Pages/Reports";
+import Financial from "./Pages/Financial";
 
 
 const router = createBrowserRouter([
@@ -44,6 +46,14 @@ const router = createBrowserRouter([
                 path: "/vipcash",
                 element: <VIPcash />
             },
+            {
+                path: "/reports",
+                element: <Reports />    
+            },
+            {
+                path: "/financial",
+                element: <Financial />
+            }
 
         ]
     },

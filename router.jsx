@@ -6,6 +6,8 @@ import Register from "./Pages/auth/register";
 import Users from "./Pages/Users";
 import Visits from "./Pages/Visits";
 import VIP from "./Pages/VIP";
+import Reports from "./Pages/Reports";
+import Financial from "./src/Pages/Financial";
 
 
 const router = createBrowserRouter([
@@ -32,6 +34,14 @@ const router = createBrowserRouter([
             {
                 path: "/vip",
                 element: <VIP />
+            },
+            {
+                path: "/reports",
+                element: <Reports />
+            },
+            {
+                path: "/financial",
+                element: <Financial />
             }
         ]
     },

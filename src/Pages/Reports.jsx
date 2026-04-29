@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { Card, Table, Tag, message, Button, Modal, Descriptions, Form, Input, Space } from "antd";
+import { Card, Table, Tag, message, Button, Modal, Descriptions, Form, Input, Space, DatePicker, Select, Grid } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
+import dayjs from "dayjs";
 import axios from "../helpers/axios";
 
 const statusColorMap = {
@@ -39,9 +43,13 @@ const isValidKenyanPhone = (value = "") => {
 };
 
 export default function Visits() {
+  const screens = Grid.useBreakpoint();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [numberPlate, setNumberPlate] = useState("");
+  const [dateRange, setDateRange] = useState(null);
+  const [paidStatus, setPaidStatus] = useState(null);
+  const [freeVisit, setFreeVisit] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -107,14 +115,18 @@ export default function Visits() {
     }
   };
 
-  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate) => {
+  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate, range = dateRange, status = paidStatus, visit = freeVisit) => {
     setLoading(true);
     try {
-      const res = await axios.get("/transactions/transactions", {
+      const res = await axios.get("/transactions/transactions/range", {
         params: {
           current,
           pageSize,
           number_plate: plate || undefined,
+          from: range?.[0] ? range[0].format("YYYY-MM-DD") : undefined,
+          to: range?.[1] ? range[1].format("YYYY-MM-DD") : undefined,
+          paid_status: status !== null ? status : undefined,
+          free_visit: visit !== null ? visit : undefined,
         },
       });
 
@@ -142,7 +154,108 @@ export default function Visits() {
   const handleNumberPlateSearch = (event) => {
     const value = event.target.value;
     setNumberPlate(value);
-    fetchTransactions(1, pagination.pageSize, value);
+    fetchTransactions(1, pagination.pageSize, value, dateRange);
+  };
+
+  const handleDateRangeChange = (range) => {
+    setDateRange(range);
+    fetchTransactions(1, pagination.pageSize, numberPlate, range, paidStatus);
+  };
+
+  const handlePaidStatusChange = (value) => {
+    setPaidStatus(value);
+    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, value, freeVisit);
+  };
+
+  const handleFreeVisitChange = (value) => {
+    setFreeVisit(value);
+    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, value);
+  };
+
+  const handleDownloadPDF = async () => {
+    try {
+      if (!data || data.length === 0) {
+        message.error("No data to export");
+        return;
+      }
+
+      message.loading({ content: "Generating PDF...", key: "pdf" });
+      const headers = [
+        "ID",
+        "Visit ID",
+        "Number Plate",
+        "Phone",
+        "Amount",
+        "Status",
+        "Transaction Code",
+        "Transaction Time",
+        "Payment Time",
+        "Vehicle Number",
+        "Ticket ID",
+        "Paid Status",
+        "Visit Time",
+        "Exit Time",
+        "Hours",
+        "Visit Status",
+        "User Type",
+      ];
+
+      const rows = data.map((record) => {
+        const visit = record?.Visit;
+        return [
+          record.id ?? "-",
+          record.visit_id ?? "-",
+          record.number_plate ?? "-",
+          record.phone_number ?? "-",
+          `KES ${record.amount ?? "-"}`,
+          record.status ?? "-",
+          record.transaction_code || "-",
+          formatDate(record.Transaction_timestamp),
+          formatDate(record.payment_timestamp),
+          visit?.vehicle_number || "-",
+          visit?.ticket_id || "-",
+          paidStatusMap[visit?.paid_status] || visit?.paid_status || "-",
+          formatDate(visit?.visit_timestamp),
+          formatDate(visit?.exit_timestamp),
+          visit?.hours || "-",
+          visitStatusMap[visit?.status] || visit?.status || "-",
+          visit?.user_type || "-",
+        ];
+      });
+
+      const pdf = new jsPDF({
+        orientation: "l",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const selectedPeriod =
+        dateRange?.[0] && dateRange?.[1]
+          ? `${dateRange[0].format("YYYY-MM-DD")} to ${dateRange[1].format("YYYY-MM-DD")}`
+          : "All Time";
+
+      autoTable(pdf, {
+        head: [headers],
+        body: rows,
+        startY: 24,
+        margin: { left: 6, right: 6, top: 24, bottom: 10 },
+        styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
+        headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
+        didDrawPage: () => {
+          pdf.setFontSize(12);
+          pdf.text("PACIFIC MALL PARKING SERVICES", 6, 8);
+          pdf.setFontSize(9);
+          pdf.text(`Period: ${selectedPeriod}`, 6, 14);
+        },
+      });
+
+      const filename = `transactions_${dayjs().format("YYYY-MM-DD_HHmmss")}.pdf`;
+      pdf.save(filename);
+      message.success({ content: "PDF downloaded successfully", key: "pdf" });
+    } catch (error) {
+      message.error({ content: "Failed to generate PDF", key: "pdf" });
+      console.error("PDF export error:", error);
+    }
   };
 
   const columns = [
@@ -238,13 +351,6 @@ export default function Visits() {
           <Button onClick={() => openVisitModal(record)}>
             View Visit
           </Button>
-          <Button
-            type="primary"
-            onClick={() => openStkModal(record)}
-            disabled={!isUnpaid(record)}
-          >
-            Send STK Push
-          </Button>
         </Space>
       ),
     },
@@ -255,13 +361,53 @@ export default function Visits() {
   return (
     <>
       <Card title="Transactions / Visits" style={{ margin: 24 }}>
-        <Input
-          allowClear
-          placeholder="Search by number plate"
-          value={numberPlate}
-          onChange={handleNumberPlateSearch}
-          style={{ width: 320, marginBottom: 16 }}
-        />
+        <Space direction={screens.md ? "horizontal" : "vertical"} style={{ marginBottom: 16, width: "100%", justifyContent: "space-between", alignItems: screens.md ? "center" : "flex-start" }}>
+          <Space direction={screens.md ? "horizontal" : "vertical"} style={{ flex: 1 }}>
+          <Input
+            allowClear
+            placeholder="Search by number plate"
+            value={numberPlate}
+            onChange={handleNumberPlateSearch}
+            style={{ width: 320 }}
+          />
+          <DatePicker.RangePicker
+            value={dateRange}
+            onChange={handleDateRangeChange}
+            format="YYYY-MM-DD"
+            placeholder={["From", "To"]}
+          />
+          <Select
+            allowClear
+            placeholder="Select Paid Status"
+            value={paidStatus}
+            onChange={handlePaidStatusChange}
+            style={{ width: 200 }}
+            options={[
+              { label: "Paid", value: 0 },
+              { label: "Pending Pay", value: 1 },
+            ]}
+          />
+          <Select
+            allowClear
+            placeholder="Select Visit Type"
+            value={freeVisit}
+            onChange={handleFreeVisitChange}
+            style={{ width: 200 }}
+            options={[
+              { label: "Free Visits", value: 0 },
+              { label: "Paid Visits", value: 1 },
+            ]}
+          />
+          </Space>
+          <Button
+            type="primary"
+            onClick={handleDownloadPDF}
+            icon={<DownloadOutlined />}
+            style={{ alignSelf: screens.md ? "auto" : "flex-start" }}
+          >
+            Download PDF
+          </Button>
+        </Space>
         <Table
           rowKey="id"
           loading={loading}
@@ -270,7 +416,7 @@ export default function Visits() {
           dataSource={data}
           scroll={{ x: "max-content" }}
           pagination={pagination}
-          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate)}
+          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate, dateRange, paidStatus, freeVisit)}
         />
       </Card>
 
