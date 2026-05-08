@@ -50,6 +50,8 @@ export default function Visits() {
   const [dateRange, setDateRange] = useState(null);
   const [paidStatus, setPaidStatus] = useState(null);
   const [freeVisit, setFreeVisit] = useState(null);
+  const [manualPay, setManualPay] = useState(null);
+  const [visitStatus, setVisitStatus] = useState(null);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
@@ -115,7 +117,7 @@ export default function Visits() {
     }
   };
 
-  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate, range = dateRange, status = paidStatus, visit = freeVisit) => {
+  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate, range = dateRange, status = paidStatus, visit = freeVisit, payment = manualPay, visitStat = visitStatus) => {
     setLoading(true);
     try {
       const res = await axios.get("/transactions/transactions/range", {
@@ -127,6 +129,8 @@ export default function Visits() {
           to: range?.[1] ? range[1].format("YYYY-MM-DD") : undefined,
           paid_status: status !== null ? status : undefined,
           free_visit: visit !== null ? visit : undefined,
+          manual_pay: payment !== null ? payment : undefined,
+          visit_status: visitStat !== null ? visitStat : undefined,
         },
       });
 
@@ -172,6 +176,16 @@ export default function Visits() {
     fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, value);
   };
 
+  const handleManualPayChange = (value) => {
+    setManualPay(value);
+    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, freeVisit, value);
+  };
+
+  const handleVisitStatusChange = (value) => {
+    setVisitStatus(value);
+    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, freeVisit, manualPay, value);
+  };
+
   const handleDownloadPDF = async () => {
     try {
       if (!data || data.length === 0) {
@@ -181,8 +195,6 @@ export default function Visits() {
 
       message.loading({ content: "Generating PDF...", key: "pdf" });
       const headers = [
-        "ID",
-        "Visit ID",
         "Number Plate",
         "Phone",
         "Amount",
@@ -203,8 +215,6 @@ export default function Visits() {
       const rows = data.map((record) => {
         const visit = record?.Visit;
         return [
-          record.id ?? "-",
-          record.visit_id ?? "-",
           record.number_plate ?? "-",
           record.phone_number ?? "-",
           `KES ${record.amount ?? "-"}`,
@@ -361,27 +371,28 @@ export default function Visits() {
   return (
     <>
       <Card title="Transactions / Visits" style={{ margin: 24 }}>
-        <Space direction={screens.md ? "horizontal" : "vertical"} style={{ marginBottom: 16, width: "100%", justifyContent: "space-between", alignItems: screens.md ? "center" : "flex-start" }}>
-          <Space direction={screens.md ? "horizontal" : "vertical"} style={{ flex: 1 }}>
+        <Space direction={screens.md ? "horizontal" : "vertical"} style={{ marginBottom: 16, width: "100%", justifyContent: "space-between", alignItems: screens.md ? "center" : "flex-start", gap: screens.md ? 8 : 12 }}>
+          <Space direction={screens.md ? "horizontal" : "vertical"} style={{ flex: 1, width: "100%", flexWrap: "wrap", gap: screens.md ? 8 : 12 }}>
           <Input
             allowClear
             placeholder="Search by number plate"
             value={numberPlate}
             onChange={handleNumberPlateSearch}
-            style={{ width: 320 }}
+            style={{ width: screens.md ? 320 : "100%", minWidth: screens.md ? 200 : "100%" }}
           />
           <DatePicker.RangePicker
             value={dateRange}
             onChange={handleDateRangeChange}
             format="YYYY-MM-DD"
             placeholder={["From", "To"]}
+            style={{ width: screens.md ? "auto" : "100%" }}
           />
           <Select
             allowClear
             placeholder="Select Paid Status"
             value={paidStatus}
             onChange={handlePaidStatusChange}
-            style={{ width: 200 }}
+            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
             options={[
               { label: "Paid", value: 0 },
               { label: "Pending Pay", value: 1 },
@@ -392,10 +403,32 @@ export default function Visits() {
             placeholder="Select Visit Type"
             value={freeVisit}
             onChange={handleFreeVisitChange}
-            style={{ width: 200 }}
+            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
             options={[
               { label: "Free Visits", value: 0 },
               { label: "Paid Visits", value: 1 },
+            ]}
+          />
+          <Select
+            allowClear
+            placeholder="Select Payment Mode"
+            value={manualPay}
+            onChange={handleManualPayChange}
+            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+            options={[
+              { label: "Manual Pay", value: 1 },
+              { label: "Mpesa payments", value: 0 },
+            ]}
+          />
+          <Select
+            allowClear
+            placeholder="Select Visit Status"
+            value={visitStatus}
+            onChange={handleVisitStatusChange}
+            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+            options={[
+              { label: "Completed", value: 0 },
+              { label: "Pending", value: 1 },
             ]}
           />
           </Space>
@@ -416,7 +449,7 @@ export default function Visits() {
           dataSource={data}
           scroll={{ x: "max-content" }}
           pagination={pagination}
-          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate, dateRange, paidStatus, freeVisit)}
+          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate, dateRange, paidStatus, freeVisit, manualPay, visitStatus)}
         />
       </Card>
 

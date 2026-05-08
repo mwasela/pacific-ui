@@ -1,6 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Button, Card, Col, DatePicker, Grid, Input, Row, Select, Space, Statistic, Typography, message } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
+import { jsPDF } from "jspdf";
+import autoTable from "jspdf-autotable";
 import axios from "../helpers/axios";
 
 const { Title, Text } = Typography;
@@ -59,6 +62,77 @@ export default function Financial() {
     setNumberPlate(numberPlateInput.trim());
   };
 
+  const handleDownloadPDF = async () => {
+    try {
+      message.loading({ content: "Generating PDF...", key: "pdf" });
+
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const selectedPeriod =
+        dateRange?.[0] && dateRange?.[1]
+          ? `${dateRange[0].format("YYYY-MM-DD")} to ${dateRange[1].format("YYYY-MM-DD")}`
+          : "All Time";
+
+      const tableData = [
+        ["Metric", "Value"],
+        ["Total Revenue", `KES ${Number(analytics.total_revenue).toLocaleString()}`],
+        ["Unique Number Plates", analytics.unique_number_plates.toString()],
+        [
+          "Selected Plate Revenue",
+          analytics.number_plate_total_amount === null
+            ? "N/A"
+            : `KES ${Number(analytics.number_plate_total_amount).toLocaleString()}`,
+        ],
+      ];
+
+      const filterInfo = [];
+      if (numberPlate) filterInfo.push(`Number Plate: ${numberPlate}`);
+      if (paidStatus !== null) {
+        filterInfo.push(`Paid Status: ${paidStatus === 0 ? "Paid" : "Pending Pay"}`);
+      }
+      if (freeVisit !== null) {
+        filterInfo.push(`Visit Type: ${freeVisit === 0 ? "Free Visits" : "Paid Visits"}`);
+      }
+
+      autoTable(pdf, {
+        body: tableData,
+        startY: 40,
+        margin: { left: 10, right: 10, top: 10, bottom: 10 },
+        styles: { fontSize: 10, cellPadding: 5 },
+        headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: "bold" },
+      });
+
+      pdf.setFontSize(14);
+      pdf.text("PACIFIC MALL PARKING SERVICES", 10, 15);
+      pdf.setFontSize(12);
+      pdf.text("Financial Analytics Report", 10, 25);
+
+      pdf.setFontSize(9);
+      pdf.text(`Period: ${selectedPeriod}`, 10, 35);
+
+      if (filterInfo.length > 0) {
+        let yPos = pdf.internal.pageSize.getHeight() - 30;
+        pdf.setFontSize(8);
+        pdf.text("Applied Filters:", 10, yPos);
+        filterInfo.forEach((filter, index) => {
+          yPos -= 5;
+          pdf.text(`• ${filter}`, 12, yPos);
+        });
+      }
+
+      const filename = `financial_report_${dayjs().format("YYYY-MM-DD_HHmmss")}.pdf`;
+      pdf.save(filename);
+      message.success({ content: "PDF downloaded successfully", key: "pdf" });
+    } catch (error) {
+      message.error({ content: "Failed to generate PDF", key: "pdf" });
+      console.error("PDF export error:", error);
+    }
+  };
+
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
       <div>
@@ -80,9 +154,9 @@ export default function Financial() {
             onChange={(value) => setDateRange(value)}
             format="YYYY-MM-DD"
             placeholder={["From", "To"]}
-            style={{ minWidth: screens.md ? 280 : "100%" }}
+            style={{ width: screens.md ? 280 : "100%", minWidth: screens.md ? 200 : "100%" }}
           />
-          <Space.Compact style={{ minWidth: screens.md ? 320 : "100%", width: screens.md ? "auto" : "100%" }}>
+          <Space.Compact style={{ width: screens.md ? "auto" : "100%", minWidth: screens.md ? 320 : "100%" }}>
             <Input
               allowClear
               value={numberPlateInput}
@@ -103,7 +177,7 @@ export default function Financial() {
               { label: "Paid", value: 0 },
               { label: "Pending Pay", value: 1 },
             ]}
-            style={{ minWidth: screens.md ? 180 : "100%" }}
+            style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
           />
           <Select
             allowClear
@@ -114,8 +188,17 @@ export default function Financial() {
               { label: "Free Visits", value: 0 },
               { label: "Paid Visits", value: 1 },
             ]}
-            style={{ minWidth: screens.md ? 180 : "100%" }}
+            style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
           />
+          <Button
+            type="primary"
+            onClick={handleDownloadPDF}
+            icon={<DownloadOutlined />}
+            loading={loading}
+            style={{ width: screens.md ? "auto" : "100%" }}
+          >
+            Download PDF
+          </Button>
         </Space>
       </Card>
 
