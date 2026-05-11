@@ -27,6 +27,8 @@ export default function Financial() {
     total_revenue: 0,
     unique_number_plates: 0,
     number_plate_total_amount: null,
+    raw_visit_records: 0,
+    open_visit_records: 0,  
   });
 
   const filters = useMemo(() => {
@@ -45,8 +47,11 @@ export default function Financial() {
     setLoading(true);
     try {
       const res = await axios.get("/analytics/revenue", { params: filters });
+      console.log("Revenue analytics response:", res.data);
       setAnalytics({
         total_revenue: Number(res.data?.total_revenue || 0),
+        open_visit_records: Number(res.data?.open_visit_records || 0),
+        raw_visit_records: Number(res.data?.raw_visit_records || 0),
         unique_number_plates: Number(res.data?.unique_number_plates || 0),
         number_plate_total_amount:
           res.data?.number_plate_total_amount === null ? null : Number(res.data?.number_plate_total_amount || 0),
@@ -266,6 +271,27 @@ export default function Financial() {
           </Card>
         </Col>
       </Row>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} lg={8}>
+          <Card loading={loading}>
+            <Statistic
+              title="Raw Visits Records"
+              value={analytics.raw_visit_records}
+              valueStyle={{ color: "#d46b08" }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={8}>
+              
+          <Card loading={loading}>
+            <Statistic
+              title="Open Visit Records"
+              value={analytics.open_visit_records}
+              valueStyle={{ color: "#d46b08" }}
+            />
+          </Card>
+        </Col>
+      </Row>  
     </Space>
   );
 }
