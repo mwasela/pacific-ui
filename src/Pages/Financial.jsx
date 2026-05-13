@@ -89,6 +89,8 @@ export default function Financial() {
       const metricRows = [
         ["Total Revenue", `KES ${Number(analytics.total_revenue).toLocaleString()}`],
         ["Unique Number Plates", analytics.unique_number_plates.toString()],
+        ["Raw Visit Records (All vehicles)", analytics.raw_visit_records.toString()],
+        ["Current Vehicles in the Malls", analytics.open_visit_records.toString()],
         [
           "Selected Plate Revenue",
           analytics.number_plate_total_amount === null
@@ -275,7 +277,7 @@ export default function Financial() {
         <Col xs={24} sm={12} lg={8}>
           <Card loading={loading}>
             <Statistic
-              title="Raw Visits Records"
+              title="Raw Visit Records (All vehicles)"
               value={analytics.raw_visit_records}
               valueStyle={{ color: "#d46b08" }}
             />
@@ -285,7 +287,7 @@ export default function Financial() {
               
           <Card loading={loading}>
             <Statistic
-              title="Open Visit Records"
+              title="Current Vehicles in the Malls"
               value={analytics.open_visit_records}
               valueStyle={{ color: "#d46b08" }}
             />
