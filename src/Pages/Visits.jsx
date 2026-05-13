@@ -107,6 +107,30 @@ export default function Visits() {
     }
   };
 
+  const validateVisit = async (transaction) => {
+    const visitId = getVisitId(transaction);
+
+    if (!visitId) {
+      message.error("Visit ID is missing for this record");
+      return;
+    }
+
+    try {
+      await axios.post("/api/user/updatepaymenttime", { visit_id: visitId });
+      message.success("Visit validated successfully");
+      fetchTransactions(pagination.current, pagination.pageSize, numberPlate);
+    } catch (error) {
+      message.error(error.response?.data?.message || "Failed to validate visit");
+    }
+  };
+
+
+
+
+
+
+
+
   const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate) => {
     setLoading(true);
     try {
@@ -160,7 +184,7 @@ export default function Visits() {
       title: "Number Plate",
       dataIndex: "number_plate",
       width: 130,
-      key:"number_plate",
+      key: "number_plate",
     },
     {
       title: "Phone",
@@ -194,7 +218,7 @@ export default function Visits() {
         );
       },
     },
-        {
+    {
       title: "Transaction Code",
       dataIndex: "transaction_code",
       width: 170,
@@ -244,6 +268,12 @@ export default function Visits() {
             disabled={!isUnpaid(record)}
           >
             Send STK Push
+          </Button>
+          <Button
+            type="primary"
+            onClick={() => validateVisit(record)}
+          >
+            Validate
           </Button>
         </Space>
       ),
