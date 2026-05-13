@@ -28,7 +28,8 @@ export default function Financial() {
     unique_number_plates: 0,
     number_plate_total_amount: null,
     raw_visit_records: 0,
-    open_visit_records: 0,  
+    open_visit_records: 0,
+    closed_visit_records: 0, // Exits
   });
 
   const filters = useMemo(() => {
@@ -47,7 +48,8 @@ export default function Financial() {
     setLoading(true);
     try {
       const res = await axios.get("/analytics/revenue", { params: filters });
-      console.log("Revenue analytics response:", res.data);
+      // Fetch closed visit records (exits) with visit_status=0
+      const closedRes = await axios.get("/analytics/revenue", { params: { ...filters, visit_status: 0 } });
       setAnalytics({
         total_revenue: Number(res.data?.total_revenue || 0),
         open_visit_records: Number(res.data?.open_visit_records || 0),
@@ -55,6 +57,7 @@ export default function Financial() {
         unique_number_plates: Number(res.data?.unique_number_plates || 0),
         number_plate_total_amount:
           res.data?.number_plate_total_amount === null ? null : Number(res.data?.number_plate_total_amount || 0),
+        closed_visit_records: Number(closedRes.data?.raw_visit_records || 0),
       });
     } catch (error) {
       message.error(error.response?.data?.error || "Failed to fetch revenue analytics");
@@ -89,8 +92,9 @@ export default function Financial() {
       const metricRows = [
         ["Total Revenue", `KES ${Number(analytics.total_revenue).toLocaleString()}`],
         ["Unique Number Plates", analytics.unique_number_plates.toString()],
-        ["Raw Visit Records (All vehicles)", analytics.raw_visit_records.toString()],
-        ["Current Vehicles in the Malls", analytics.open_visit_records.toString()],
+        ["All Entries", analytics.raw_visit_records.toString()],
+        ["Current Vehicles in the Mall", analytics.open_visit_records.toString()],
+        ["Exits", analytics.closed_visit_records.toString()],
         [
           "Selected Plate Revenue",
           analytics.number_plate_total_amount === null
@@ -221,7 +225,7 @@ export default function Financial() {
             ]}
             style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
           />
-          <Select
+          {/* <Select
             allowClear
             value={visitStatus}
             onChange={setVisitStatus}
@@ -231,7 +235,7 @@ export default function Financial() {
               { label: "Closed", value: 0 },
             ]}
             style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
-          />
+          /> */}
           <Button
             type="primary"
             onClick={handleDownloadPDF}
@@ -277,14 +281,13 @@ export default function Financial() {
         <Col xs={24} sm={12} lg={8}>
           <Card loading={loading}>
             <Statistic
-              title="Raw Visit Records (All vehicles)"
+              title="All Entries"
               value={analytics.raw_visit_records}
               valueStyle={{ color: "#d46b08" }}
             />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={8}>
-              
           <Card loading={loading}>
             <Statistic
               title="Current Vehicles in the Mall"
@@ -293,7 +296,16 @@ export default function Financial() {
             />
           </Card>
         </Col>
-      </Row>  
+        <Col xs={24} sm={12} lg={8}>
+          <Card loading={loading}>
+            <Statistic
+              title="Exits"
+              value={analytics.closed_visit_records}
+              valueStyle={{ color: "#b37feb" }}
+            />
+          </Card>
+        </Col>
+      </Row>
     </Space>
   );
 }
