@@ -287,7 +287,7 @@ export default function Financial() {
               
           <Card loading={loading}>
             <Statistic
-              title="Current Vehicles in the Malls"
+              title="Current Vehicles in the Mall"
               value={analytics.open_visit_records}
               valueStyle={{ color: "#d46b08" }}
             />
