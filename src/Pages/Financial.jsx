@@ -44,8 +44,8 @@ export default function Financial() {
   const [numberPlateInput, setNumberPlateInput] = useState("");
   const [numberPlate, setNumberPlate] = useState("");
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, "day"), dayjs()]);
-  const [paidStatus, setPaidStatus] = useState(null);
-  const [freeVisit, setFreeVisit] = useState(null);
+  const [paidStatus, setPaidStatus] = useState(0);
+  const [freeVisit, setFreeVisit] = useState(1);
   const [manualPay, setManualPay] = useState(null);
   const [visitStatus, setVisitStatus] = useState(null);
   const [summaryPeriod, setSummaryPeriod] = useState("1m");
@@ -187,7 +187,7 @@ export default function Financial() {
 
       const metricRows = [
         ["Total Revenue", `KES ${Number(analytics.total_revenue).toLocaleString()}`],
-        ["Unique Number Plates", analytics.unique_number_plates.toString()],
+        // ["Unique Number Plates", analytics.unique_number_plates.toString()],
         ["All Entries", analytics.raw_visit_records.toString()],
         ["Current Vehicles in the Mall", analytics.open_visit_records.toString()],
         ["Exits", analytics.closed_visit_records.toString()],
@@ -245,11 +245,11 @@ export default function Financial() {
       const logoY = 10;
 
       const rows = [
-        ["Expected Revenue", `KES ${Number(summaryAnalytics.expected_revenue).toLocaleString()}`],
+        // ["Expected Revenue", `KES ${Number(summaryAnalytics.expected_revenue).toLocaleString()}`],
         ["Collected Revenue", `KES ${Number(summaryAnalytics.collected_revenue).toLocaleString()}`],
         ["Successful Exits", summaryAnalytics.successful_exits.toString()],
         ["Pending Exits", summaryAnalytics.pending_exits.toString()],
-        ["Pending Amount", `KES ${Number(summaryAnalytics.pending_amount).toLocaleString()}`],
+        //["Pending Amount", `KES ${Number(summaryAnalytics.pending_amount).toLocaleString()}`],
         ["Manual Revenue", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
         ["Mpesa Revenue", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
         ["All Entries (Visits)", summaryAnalytics.all_entries.toString()],
@@ -330,28 +330,6 @@ export default function Financial() {
                     </Space.Compact>
                     <Select
                       allowClear
-                      value={paidStatus}
-                      onChange={setPaidStatus}
-                      placeholder="Paid status"
-                      options={[
-                        { label: "Paid", value: 0 },
-                        { label: "Pending Pay", value: 1 },
-                      ]}
-                      style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
-                    />
-                    <Select
-                      allowClear
-                      value={freeVisit}
-                      onChange={setFreeVisit}
-                      placeholder="Visit type"
-                      options={[
-                        { label: "Free Visits", value: 0 },
-                        { label: "Paid Visits", value: 1 },
-                      ]}
-                      style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
-                    />
-                    <Select
-                      allowClear
                       value={manualPay}
                       onChange={setManualPay}
                       placeholder="Payment Type"
@@ -394,11 +372,11 @@ export default function Financial() {
                       />
                     </Card>
                   </Col>
-                  <Col xs={24} sm={12} lg={8}>
+                  {/* <Col xs={24} sm={12} lg={8}>
                     <Card loading={loading}>
                       <Statistic title="Unique Number Plates" value={analytics.unique_number_plates} />
                     </Card>
-                  </Col>
+                  </Col> */}
                   <Col xs={24} sm={12} lg={8}>
                     <Card loading={loading}>
                       <Statistic
@@ -484,7 +462,7 @@ export default function Financial() {
                 </Card>
 
                 <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
+                  {/* <Col xs={24} sm={12} lg={8}>
                     <Card loading={summaryLoading}>
                       <Statistic
                         title="Expected Revenue"
@@ -492,7 +470,7 @@ export default function Financial() {
                         valueStyle={{ color: "#1d39c4" }}
                       />
                     </Card>
-                  </Col>
+                  </Col> */}
                   <Col xs={24} sm={12} lg={8}>
                     <Card loading={summaryLoading}>
                       <Statistic

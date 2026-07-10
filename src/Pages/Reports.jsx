@@ -5,6 +5,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import dayjs from "dayjs";
 import axios from "../helpers/axios";
+import logo from "../assets/logo.png";
 
 const statusColorMap = {
   COMPLETED: "#52c41a",
@@ -41,6 +42,14 @@ const isValidKenyanPhone = (value = "") => {
   const normalized = normalizeKenyanPhone(value);
   return /^0(7\d{8}|1\d{8})$/.test(normalized);
 };
+
+const loadLogoImage = () =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = logo;
+  });
 
 export default function Visits() {
   const screens = Grid.useBreakpoint();
@@ -196,7 +205,6 @@ export default function Visits() {
       message.loading({ content: "Generating PDF...", key: "pdf" });
       const headers = [
         "Number Plate",
-        "Phone",
         "Amount",
         "Status",
         "Transaction Code",
@@ -205,7 +213,7 @@ export default function Visits() {
         "Vehicle Number",
         "Ticket ID",
         "Paid Status",
-        "Visit Time",
+        "Entry Time",
         "Exit Time",
         "Hours",
         "Visit Status",
@@ -216,7 +224,6 @@ export default function Visits() {
         const visit = record?.Visit;
         return [
           record.number_plate ?? "-",
-          record.phone_number ?? "-",
           `KES ${record.amount ?? "-"}`,
           record.status ?? "-",
           record.transaction_code || "-",
@@ -233,6 +240,12 @@ export default function Visits() {
         ];
       });
 
+      // Calculate total amount
+      const totalAmount = data.reduce((sum, record) => {
+        const amount = Number(record.amount || 0);
+        return sum + amount;
+      }, 0);
+
       const pdf = new jsPDF({
         orientation: "l",
         unit: "mm",
@@ -244,6 +257,19 @@ export default function Visits() {
           ? `${dateRange[0].format("YYYY-MM-DD")} to ${dateRange[1].format("YYYY-MM-DD")}`
           : "All Time";
 
+      const logoImage = await loadLogoImage();
+      const logoWidth = 20;
+      const logoHeight = (logoImage.naturalHeight / logoImage.naturalWidth) * logoWidth;
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const logoX = pageWidth - 10 - logoWidth;
+      const logoY = 10;
+
+      pdf.setFontSize(12);
+      pdf.text("PACIFIC MALL PARKING SERVICES", 6, 8);
+      pdf.setFontSize(9);
+      pdf.text(`Period: ${selectedPeriod}`, 6, 14);
+      pdf.addImage(logoImage, "PNG", logoX, logoY, logoWidth, logoHeight);
+
       autoTable(pdf, {
         head: [headers],
         body: rows,
@@ -251,13 +277,20 @@ export default function Visits() {
         margin: { left: 6, right: 6, top: 24, bottom: 10 },
         styles: { fontSize: 7, cellPadding: 1.5, overflow: "linebreak" },
         headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
-        didDrawPage: () => {
-          pdf.setFontSize(12);
-          pdf.text("PACIFIC MALL PARKING SERVICES", 6, 8);
-          pdf.setFontSize(9);
-          pdf.text(`Period: ${selectedPeriod}`, 6, 14);
-        },
       });
+
+      // Add total amount at the bottom of the last page
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const totalY = pageHeight - 15;
+      pdf.setFontSize(10);
+      pdf.text("Total Transactions -> ", 6, totalY - 5);
+      pdf.setFont(undefined, "bold");
+      pdf.text(`${data.length}`, 50, totalY - 5);
+      pdf.setFont(undefined, "normal");
+      pdf.text("Total Amount -> ", 6, totalY);
+      pdf.setFont(undefined, "bold");
+      pdf.text(`KES ${totalAmount.toLocaleString()}`, 40, totalY);
+      pdf.setFont(undefined, "normal");
 
       const filename = `transactions_${dayjs().format("YYYY-MM-DD_HHmmss")}.pdf`;
       pdf.save(filename);
