@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Button, Card, Col, DatePicker, Grid, Input, Row, Select, Segmented, Space, Statistic, Tabs, Typography, message } from "antd";
+import { Button, Card, Col, DatePicker, Grid, Input, Row, Select, Segmented, Space, Statistic, Typography, message } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { jsPDF } from "jspdf";
@@ -38,7 +38,6 @@ const getSummaryPeriodRange = (period) => {
 
 export default function Financial() {
   const screens = Grid.useBreakpoint();
-  const [activeTab, setActiveTab] = useState("details");
   const [loading, setLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [numberPlateInput, setNumberPlateInput] = useState("");
@@ -86,16 +85,14 @@ export default function Financial() {
     setLoading(true);
     try {
       const res = await axios.get("/analytics/revenue", { params: filters });
-      // Fetch closed visit records (exits) with visit_status=0
-      const closedRes = await axios.get("/analytics/revenue", { params: { ...filters, visit_status: 0 } });
       setAnalytics({
         total_revenue: Number(res.data?.total_revenue || 0),
-        open_visit_records: Number(res.data?.open_visit_records || 0),
         raw_visit_records: Number(res.data?.raw_visit_records || 0),
+        open_visit_records: Number(res.data?.open_visit_records || 0),
         unique_number_plates: Number(res.data?.unique_number_plates || 0),
         number_plate_total_amount:
           res.data?.number_plate_total_amount === null ? null : Number(res.data?.number_plate_total_amount || 0),
-        closed_visit_records: Number(closedRes.data?.raw_visit_records || 0),
+        closed_visit_records: Number(res.data?.completed_visit_records || 0),
       });
     } catch (error) {
       message.error(error.response?.data?.error || "Failed to fetch revenue analytics");
@@ -301,277 +298,137 @@ const fetchSummaryAnalytics = async (period) => {
         <Text type="secondary">Revenue summary with detailed filters and period reporting</Text>
       </div>
 
-      <Tabs
-        activeKey={activeTab}
-        onChange={setActiveTab}
-        items={[
-          {
-            key: "details",
-            label: "Detailed View",
-            children: (
-              <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <Card title="Filters" loading={loading}>
-                  <Space
-                    direction={screens.md ? "horizontal" : "vertical"}
-                    size={12}
-                    style={{ width: "100%" }}
-                    wrap
-                  >
-                    <DatePicker.RangePicker
-                      value={dateRange}
-                      onChange={(value) => setDateRange(value)}
-                      format="YYYY-MM-DD"
-                      placeholder={["From", "To"]}
-                      style={{ width: screens.md ? 280 : "100%", minWidth: screens.md ? 200 : "100%" }}
-                    />
-                    <Space.Compact style={{ width: screens.md ? "auto" : "100%", minWidth: screens.md ? 320 : "100%" }}>
-                      <Input
-                        allowClear
-                        value={numberPlateInput}
-                        onChange={(event) => setNumberPlateInput(event.target.value)}
-                        onPressEnter={applyNumberPlateFilter}
-                        placeholder="Number plate"
-                      />
-                      <Button type="primary" onClick={applyNumberPlateFilter}>
-                        Apply
-                      </Button>
-                    </Space.Compact>
-                    <Select
-                      allowClear
-                      value={manualPay}
-                      onChange={setManualPay}
-                      placeholder="Payment Type"
-                      options={[
-                        { label: "Manual Payments", value: 1 },
-                        { label: "Mpesa Payments", value: 0 },
-                      ]}
-                      style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
-                    />
-                    {/* <Select
-                      allowClear
-                      value={visitStatus}
-                      onChange={setVisitStatus}
-                      placeholder="Visit Status"
-                      options={[
-                        { label: "Open", value: 1 },
-                        { label: "Closed", value: 0 },
-                      ]}
-                      style={{ width: screens.md ? 180 : "100%", minWidth: screens.md ? 150 : "100%" }}
-                    /> */}
-                    <Button
-                      type="primary"
-                      onClick={handleDownloadPDF}
-                      icon={<DownloadOutlined />}
-                      loading={loading}
-                      style={{ width: screens.md ? "auto" : "100%" }}
-                    >
-                      Download PDF
-                    </Button>
-                  </Space>
-                </Card>
+      <Space direction="vertical" size={16} style={{ width: "100%" }}>
+        <Card title="Summary Period" loading={summaryLoading}>
+          <Space
+            direction={screens.md ? "horizontal" : "vertical"}
+            size={12}
+            style={{ width: "100%", justifyContent: "space-between" }}
+            wrap
+          >
+            <Segmented
+              value={summaryPeriod}
+              onChange={setSummaryPeriod}
+              options={[
+                { label: "Last 24 Hours", value: "24h" },
+                { label: "Last 7 Days", value: "7d" },
+                { label: "Last 1 Month", value: "1m" },
+              ]}
+            />
+            <Button
+              type="primary"
+              onClick={handleDownloadSummaryPDF}
+              icon={<DownloadOutlined />}
+              loading={summaryLoading}
+              style={{ width: screens.md ? "auto" : "100%" }}
+            >
+              Download PDF
+            </Button>
+          </Space>
+          <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
+            Showing {getSummaryPeriodRange(summaryPeriod).label}
+          </Text>
+        </Card>
 
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic
-                        title="Total Revenue"
-                        value={toMoney(analytics.total_revenue)}
-                        valueStyle={{ color: "#237804" }}
-                      />
-                    </Card>
-                  </Col>
-                  {/* <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic title="Unique Number Plates" value={analytics.unique_number_plates} />
-                    </Card>
-                  </Col> */}
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic
-                        title="Selected Plate Revenue"
-                        value={
-                          analytics.number_plate_total_amount === null
-                            ? "Select a number plate"
-                            : toMoney(analytics.number_plate_total_amount)
-                        }
-                        valueStyle={{ color: analytics.number_plate_total_amount === null ? "#8c8c8c" : "#1d39c4" }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic
-                        title="All Entries"
-                        value={analytics.raw_visit_records}
-                        valueStyle={{ color: "#d46b08" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic
-                        title="Current Vehicles in the Mall"
-                        value={analytics.open_visit_records}
-                        valueStyle={{ color: "#d46b08" }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={loading}>
-                      <Statistic
-                        title="Exits"
-                        value={analytics.closed_visit_records}
-                        valueStyle={{ color: "#b37feb" }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-              </Space>
-            ),
-          },
-          {
-            key: "summary",
-            label: "Period Summary",
-            children: (
-              <Space direction="vertical" size={16} style={{ width: "100%" }}>
-                <Card title="Summary Period" loading={summaryLoading}>
-                  <Space
-                    direction={screens.md ? "horizontal" : "vertical"}
-                    size={12}
-                    style={{ width: "100%", justifyContent: "space-between" }}
-                    wrap
-                  >
-                    <Segmented
-                      value={summaryPeriod}
-                      onChange={setSummaryPeriod}
-                      options={[
-                        { label: "Last 24 Hours", value: "24h" },
-                        { label: "Last 7 Days", value: "7d" },
-                        { label: "Last 1 Month", value: "1m" },
-                      ]}
-                    />
-                    <Button
-                      type="primary"
-                      onClick={handleDownloadSummaryPDF}
-                      icon={<DownloadOutlined />}
-                      loading={summaryLoading}
-                      style={{ width: screens.md ? "auto" : "100%" }}
-                    >
-                      Download PDF
-                    </Button>
-                  </Space>
-                  <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-                    Showing {getSummaryPeriodRange(summaryPeriod).label}
-                  </Text>
-                </Card>
+        <Row gutter={[16, 16]}>
+          {/* <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Expected Revenue"
+                value={toMoney(summaryAnalytics.expected_revenue)}
+                valueStyle={{ color: "#1d39c4" }}
+              />
+            </Card>
+          </Col> */}
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Collected Revenue"
+                value={toMoney(summaryAnalytics.collected_revenue)}
+                valueStyle={{ color: "#237804" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Successful Exits"
+                value={summaryAnalytics.successful_exits}
+                valueStyle={{ color: "#722ed1" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Pending Exits"
+                value={summaryAnalytics.pending_exits}
+                valueStyle={{ color: "#fa8c16" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            {/* <Card loading={summaryLoading}>
+              <Statistic
+                title="Pending Amount"
+                value={toMoney(summaryAnalytics.pending_amount)}
+                valueStyle={{ color: "#ad6800" }}
+              />
+            </Card> */}
+          </Col>
+        </Row>
 
-                <Row gutter={[16, 16]}>
-                  {/* <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Expected Revenue"
-                        value={toMoney(summaryAnalytics.expected_revenue)}
-                        valueStyle={{ color: "#1d39c4" }}
-                      />
-                    </Card>
-                  </Col> */}
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Collected Revenue"
-                        value={toMoney(summaryAnalytics.collected_revenue)}
-                        valueStyle={{ color: "#237804" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Successful Exits"
-                        value={summaryAnalytics.successful_exits}
-                        valueStyle={{ color: "#722ed1" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Pending Exits"
-                        value={summaryAnalytics.pending_exits}
-                        valueStyle={{ color: "#fa8c16" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    {/* <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Pending Amount"
-                        value={toMoney(summaryAnalytics.pending_amount)}
-                        valueStyle={{ color: "#ad6800" }}
-                      />
-                    </Card> */}
-                  </Col>
-                </Row>
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Manual Revenue"
+                value={toMoney(summaryAnalytics.manual_revenue)}
+                valueStyle={{ color: "#d4380d" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Mpesa Revenue"
+                value={toMoney(summaryAnalytics.mpesa_revenue)}
+                valueStyle={{ color: "#08979c" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="All Entries (Visits)"
+                value={summaryAnalytics.all_entries}
+                valueStyle={{ color: "#d46b08" }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Manual Revenue"
-                        value={toMoney(summaryAnalytics.manual_revenue)}
-                        valueStyle={{ color: "#d4380d" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Mpesa Revenue"
-                        value={toMoney(summaryAnalytics.mpesa_revenue)}
-                        valueStyle={{ color: "#08979c" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="All Entries (Visits)"
-                        value={summaryAnalytics.all_entries}
-                        valueStyle={{ color: "#d46b08" }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Manual Exits"
-                        value={summaryAnalytics.manual_exits}
-                        valueStyle={{ color: "#cf1322" }}
-                      />
-                    </Card>
-                  </Col>
-                  <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
-                      <Statistic
-                        title="Mpesa Exits"
-                        value={summaryAnalytics.mpesa_exits}
-                        valueStyle={{ color: "#13c2c2" }}
-                      />
-                    </Card>
-                  </Col>
-                </Row>
-              </Space>
-            ),
-          },
-        ]}
-      />
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Manual Exits"
+                value={summaryAnalytics.manual_exits}
+                valueStyle={{ color: "#cf1322" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Mpesa Exits"
+                value={summaryAnalytics.mpesa_exits}
+                valueStyle={{ color: "#13c2c2" }}
+              />
+            </Card>
+          </Col>
+        </Row>
+      </Space>
     </Space>
   );
 }
