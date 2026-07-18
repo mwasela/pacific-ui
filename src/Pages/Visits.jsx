@@ -53,6 +53,10 @@ export default function Visits() {
   const [stkVisitId, setStkVisitId] = useState(null);
   const [sendingStk, setSendingStk] = useState(false);
   const [stkForm] = Form.useForm();
+  const [isManualExitModalOpen, setIsManualExitModalOpen] = useState(false);
+  const [manualExitVisitId, setManualExitVisitId] = useState(null);
+  const [sendingManualExit, setSendingManualExit] = useState(false);
+  const [manualExitForm] = Form.useForm();
 
   const getVisitId = (transaction) => transaction?.visit_id ?? transaction?.Visit?.id;
   const isUnpaid = (transaction) => {
@@ -125,7 +129,44 @@ export default function Visits() {
   };
 
 
+  const manualExit = async (transaction) => {
+    const visitId = getVisitId(transaction);
+    if (!visitId) {
+      message.error("Visit ID is missing for this record");
+      return;
+    }
+    setManualExitVisitId(visitId);
+    manualExitForm.resetFields();
+    setIsManualExitModalOpen(true);
+  };
 
+  const closeManualExitModal = () => {
+    setManualExitVisitId(null);
+    setIsManualExitModalOpen(false);
+    manualExitForm.resetFields();
+  };
+
+  const submitManualExit = async () => {
+    try {
+      const values = await manualExitForm.validateFields();
+
+      if (!manualExitVisitId) {
+        message.error("Visit ID is missing for this record");
+        return;
+      }
+
+      setSendingManualExit(true);
+      await axios.post("/manual/visit", { visit_id: manualExitVisitId, barrier: 2, reason: values.reason });
+      message.success("Manual exit successful");
+      closeManualExitModal();
+      fetchTransactions(pagination.current, pagination.pageSize, numberPlate);
+    } catch (error) {
+      if (error?.errorFields) return;
+      message.error(error.response?.data?.message || "Failed to perform manual exit");
+    } finally {
+      setSendingManualExit(false);
+    }
+  };
 
 
 
@@ -175,26 +216,26 @@ export default function Visits() {
       dataIndex: "id",
       width: 80,
     },
-    {
-      title: "Visit ID",
-      dataIndex: "visit_id",
-      width: 90,
-    },
+    // {
+    //   title: "Visit ID",
+    //   dataIndex: "visit_id",
+    //   width: 90,
+    // },
     {
       title: "Number Plate",
       dataIndex: "number_plate",
       width: 130,
       key: "number_plate",
     },
-    {
-      title: "Phone",
-      dataIndex: "phone_number",
-      width: 150,
-    },
+    // {
+    //   title: "Phone",
+    //   dataIndex: "phone_number",
+    //   width: 150,
+    // },
     {
       title: "Amount",
       dataIndex: "amount",
-      width: 100,
+      width: 80,
       render: (amount) => `KES ${amount}`,
     },
     {
@@ -221,7 +262,7 @@ export default function Visits() {
     {
       title: "Transaction Code",
       dataIndex: "transaction_code",
-      width: 170,
+      width: 200,
       render: (code) => {
         if (!code) return "-";
         return (
@@ -240,17 +281,35 @@ export default function Visits() {
       },
     },
 
-    {
-      title: "Transaction Time",
-      dataIndex: "Transaction_timestamp",
-      width: 190,
-      render: (value) => formatDate(value),
-    },
+    // {
+    //   title: "Transaction Time",
+    //   dataIndex: "Transaction_timestamp",
+    //   width: 190,
+    //   render: (value) => formatDate(value),
+    // },
     {
       title: "Payment Time",
       dataIndex: "payment_timestamp",
-      width: 190,
-      render: (value) => formatDate(value),
+      width: 170,
+      render: (value, record) => {
+        const visit = record?.Visit;
+        if (visit && (visit.status === 0 || visitStatusMap[visit.status] === "Closed") && Number(visit.amount) === 0) {
+          return (
+            <Tag
+              style={{
+                backgroundColor: "#f6ffed",
+                borderColor: "#b7eb8f",
+                color: "#52c41a",
+                borderRadius: "4px",
+                fontWeight: 600,
+              }}
+            >
+              Free Exit
+            </Tag>
+          );
+        }
+        return formatDate(value);
+      },
     },
     {
       title: "Actions",
@@ -275,6 +334,12 @@ export default function Visits() {
           >
             Validate
           </Button>
+          <Button
+            type="default"
+            onClick={() => manualExit(record)}
+          >
+            Manual Exit
+          </Button>
         </Space>
       ),
     },
@@ -292,16 +357,18 @@ export default function Visits() {
           onChange={handleNumberPlateSearch}
           style={{ width: 320, marginBottom: 16 }}
         />
-        <Table
-          rowKey="id"
-          loading={loading}
-          columns={columns}
-          size="small"
-          dataSource={data}
-          scroll={{ x: "max-content" }}
-          pagination={pagination}
-          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate)}
-        />
+        <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+          <Table
+            rowKey="id"
+            loading={loading}
+            columns={columns}
+            size="small"
+            dataSource={data}
+            scroll={{ x: 1200 }}
+            pagination={pagination}
+            onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate)}
+          />
+        </div>
       </Card>
 
       <Modal title="Visit Details" open={isVisitModalOpen} onCancel={closeVisitModal} footer={null}>
@@ -312,7 +379,9 @@ export default function Visits() {
             <Descriptions.Item label="Ticket ID">{visit.ticket_id ?? "-"}</Descriptions.Item>
             <Descriptions.Item label="Checkout ID">{selectedTransaction?.checkoutID ?? "-"}</Descriptions.Item>
             <Descriptions.Item label="Paid Status">
-              {paidStatusMap[visit.paid_status] || visit.paid_status || "-"}
+              {(visit.status === 0 || visitStatusMap[visit.status] === "Closed") && Number(visit.amount) === 0
+                ? "Free Exit"
+                : paidStatusMap[visit.paid_status] || visit.paid_status || "-"}
             </Descriptions.Item>
             <Descriptions.Item label="Visit Time">{formatDate(visit.visit_timestamp)}</Descriptions.Item>
             <Descriptions.Item label="Exit Time">{formatDate(visit.exit_timestamp)}</Descriptions.Item>
@@ -321,7 +390,9 @@ export default function Visits() {
             <Descriptions.Item label="Status">
               {visitStatusMap[visit.status] || visit.status || "-"}
             </Descriptions.Item>
-            <Descriptions.Item label="User Type">{visit.user_type ?? "-"}</Descriptions.Item>
+            <Descriptions.Item label="User Type">
+              {visit.user_type === 0 ? "Guest Parking User" : visit.user_type ? "Tenant/VIP" : "-"}
+            </Descriptions.Item>
             <Descriptions.Item label="Created At">{formatDate(visit.createdAt)}</Descriptions.Item>
             <Descriptions.Item label="Updated At">{formatDate(visit.updatedAt)}</Descriptions.Item>
           </Descriptions>
@@ -360,6 +431,31 @@ export default function Visits() {
             ]}
           >
             <Input placeholder="e.g. 0758337870" maxLength={13} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Manual Exit"
+        open={isManualExitModalOpen}
+        onCancel={closeManualExitModal}
+        onOk={submitManualExit}
+        okText="Confirm Exit"
+        confirmLoading={sendingManualExit}
+      >
+        <Form form={manualExitForm} layout="vertical">
+          <Form.Item label="Visit ID">
+            <Input value={manualExitVisitId ?? "-"} disabled />
+          </Form.Item>
+          <Form.Item
+            label="Reason for Manual Exit"
+            name="reason"
+            rules={[{ required: true, message: "Please provide a reason for manual exit" }]}
+          >
+            <Input.TextArea
+              placeholder="Enter reason for manual exit"
+              rows={4}
+            />
           </Form.Item>
         </Form>
       </Modal>

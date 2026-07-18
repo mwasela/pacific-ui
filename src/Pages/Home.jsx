@@ -124,6 +124,12 @@ export default function Home() {
         }),
       ]);
 
+
+      // console.log("summaryRes", summaryRes.data);
+      // console.log("monthlySummaryRes", monthlySummaryRes.data);
+      // console.log("seriesRes", seriesRes.data);
+      // console.log("recentRes", recentRes.data);
+
       const summaryPayload = summaryRes.data || {};
       const monthlyPayload = monthlySummaryRes.data || {};
       const seriesPayload = seriesRes.data?.points || [];
@@ -192,12 +198,16 @@ export default function Home() {
 
         <Spin spinning={loading}>
           <Row gutter={[16, 16]}>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
-                <Statistic title="Total Transactions" value={summary?.total_transactions || 0} />
+                <Statistic
+                  title="Monthly Revenue"
+                  value={formatCurrency(summary?.total_amount)}
+                  valueStyle={{ color: "#389e0d" }}
+                />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            {/* <Col xs={24} sm={12} lg={8} xl={4}>
               <Card>
                 <Statistic
                   title="Total Revenue"
@@ -205,40 +215,40 @@ export default function Home() {
                   valueStyle={{ color: "#389e0d" }}
                 />
               </Card>
-            </Col>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            </Col> */}
+            <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
-                <Statistic
-                  title="Monthly Revenue"
-                  value={formatCurrency(monthlyRevenue)}
-                  valueStyle={{ color: "#389e0d" }}
-                />
+                <Statistic title="Total Transactions" value={summary?.total_transactions || 0} />
               </Card>
+
             </Col>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
                 <Statistic title="Unique Plates" value={summary?.unique_plates || 0} />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
                 <Statistic title="Pending Exits" value={summary?.pending_exits || 0} />
               </Card>
             </Col>
             <Col xs={24} sm={12} lg={8} xl={4}>
               <Card>
+                <Statistic title="Completed Sessions" value={summary?.completed_sessions || 0} />
+              </Card>
+              {/* <Card>
                 <Statistic
                   title="Pending Unpaid"
                   value={formatCurrency(summary?.pending_unpaid_amount)}
                   valueStyle={{ color: "#cf1322" }}
                 />
-              </Card>
+              </Card> */}
             </Col>
-            <Col xs={24} sm={12} lg={8} xl={4}>
+            {/* <Col xs={24} sm={12} lg={8} xl={4}>
               <Card>
                 <Statistic title="Completed Sessions" value={summary?.completed_sessions || 0} />
               </Card>
-            </Col>
+            </Col> */}
           </Row>
 
           <Row gutter={[16, 16]} style={{ marginTop: 4 }}>

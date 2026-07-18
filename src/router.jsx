@@ -10,6 +10,10 @@ import Settings from "./Pages/Settings";
 import VIPcash from "./Pages/VIPcash";
 import Reports from "./Pages/Reports";
 import Financial from "./Pages/Financial";
+import Viplogs from "./Pages/Viplogs";
+import Timeslots from "./Pages/Timeslots";
+import Manual from "./Pages/Manual";
+import Confee from "./Pages/Confee";
 
 
 const router = createBrowserRouter([
@@ -53,6 +57,22 @@ const router = createBrowserRouter([
             {
                 path: "/financial",
                 element: <Financial />
+            },
+            {
+                path: "/viplogs",
+                element: <Viplogs />
+            },
+            {
+                path: "/timeslots",
+                element: <Timeslots />
+            },
+            {
+                path: "/manual",
+                element: <Manual />
+            },
+            {
+                path: "/confee",
+                element: <Confee />
             }
 
         ]

@@ -1,12 +1,13 @@
 import { Outlet, Link, useNavigate } from "react-router-dom";
-import { FiUsers, FiMap, FiHome, FiDribbble, FiClipboard, FiSettings } from "react-icons/fi";
+import { FiUsers, FiMap, FiHome, FiDribbble, FiClipboard, FiSettings, FiClock, FiCheckCircle, FiCreditCard, FiActivity, FiAward } from "react-icons/fi";
 import React, { useEffect, useState } from "react";
 import axios from "../helpers/axios";
 import { Layout, Menu, Avatar, Dropdown, message } from "antd";
 import { UserOutlined, LogoutOutlined  } from "@ant-design/icons";
+import logo from "../assets/logo.png";
+
 
 const { Header, Sider, Content, Footer } = Layout;
-
 
 
 export default function MainLayout() {
@@ -46,20 +47,20 @@ export default function MainLayout() {
             icon: <FiMap />,
             label: <Link to="/visits">Visits</Link>,
         },
+               user && user.role === 1 && {
+            key: "/manual",
+            icon: <FiClipboard />,
+            label: <Link to="/manual">Manual Exits</Link>,
+        },
         {
             key: "/vipcash",
-            icon: <FiClipboard />,
+            icon: <FiCreditCard />,
             label: <Link to="/vipcash">VIP Payments</Link>,
         },
         {
             key: "/vip",
             icon: <FiDribbble />,
-            label: <Link to="/vip">VIP</Link>,
-        },
-        user && user.role === 1 && {
-            key: "/users",
-            icon: <FiUsers />,
-            label: <Link to="/users">Users</Link>,
+            label: <Link to="/vip">Tenants</Link>,
         },
         {
             key: "/reports",
@@ -68,15 +69,49 @@ export default function MainLayout() {
         },
         user && (user.role === 1 || user.role === 2) && {
             key: "/financial",
-            icon: <FiClipboard />,
+            icon: <FiCheckCircle />,
             label: <Link to="/financial">Financial</Link>,
+        },
+        user && user.role === 1 && {
+            key: "/viplogs",
+            icon: <FiActivity />,
+            label: <Link to="/viplogs">Tenant Logs</Link>,
+        },
+        user && user.role === 1 && {
+            key: "/timeslots",
+            icon: <FiClock />,
+            label: <Link to="/timeslots">Income Graphs</Link>,
+        },
+        user && user.role === 1 && {
+            key: "/confee",
+            icon: <FiAward />,
+            label: <Link to="/confee">Convenience Fees</Link>,
         },
         user && user.role === 1 && {
             key: "/settings",
             icon: <FiSettings />,
             label: <Link to="/settings">Settings</Link>,
         },
-    ];
+        user && user.role === 1 && {
+            key: "/users",
+            icon: <FiUsers />,
+            label: <Link to="/users">Users</Link>,
+        },
+        //logoutmenuitem
+        {
+            key: "logout",
+            icon: <LogoutOutlined />,
+            danger: true,
+            label: "Log-out",
+            onClick: () => {
+                localStorage.removeItem("token");
+                message.success("Logged out successfully");
+                navigate("/login");
+            },
+        },
+    ].filter(Boolean); // Filter out null values for menu items based on user role
+    
+
 
     const userMenuItems = [
         {
@@ -103,14 +138,29 @@ export default function MainLayout() {
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
-            <Sider theme="dark" breakpoint="lg" collapsedWidth="0">
+            <Sider 
+                theme="dark" 
+                breakpoint="lg" 
+                collapsedWidth="0"
+                style={{ 
+                    position: 'fixed',
+                    left: 0,
+                    top: 0,
+                    height: '100vh',
+                    zIndex: 999,
+                    overflow: 'auto'
+                }}
+            >
                 <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, padding: "16px 20px" }}>
                     Pacific
                 </div>
+                {/* <div style={{ textAlign: "center", marginBottom: 16 }}>
+                    <img src={logo} alt="Logo" style={{ width: 120, height: "auto" }} />
+                </div> */}
                 <Menu theme="dark" mode="inline" items={menuItems} defaultSelectedKeys={["/"]} />
             </Sider>
 
-            <Layout>
+            <Layout style={{ marginLeft: 200 }}>
                 <Header
                     style={{
                         background: "#fff",
@@ -129,7 +179,7 @@ export default function MainLayout() {
                     </Dropdown>
                 </Header>
 
-                <Content style={{ padding: 24, minHeight: 360 }}>
+                <Content style={{ padding: 24, minHeight: 360, overflow: 'auto' }}>
                     <Outlet />
                 </Content>
 

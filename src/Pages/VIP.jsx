@@ -103,6 +103,7 @@ export default function VIP() {
                 phone_number: values.phone_number,
                 vehicle_number: values.vehicle_number,
                 vip_status: Number(values.vip_status),
+                vip_expiry: values.vip_expiry ? values.vip_expiry.toISOString() : null,
 
             };
 
@@ -311,7 +312,18 @@ export default function VIP() {
                         </Col>
                     </Row>
 
+                    
+
                     <Row gutter={12}>
+                        <Col xs={24} sm={12}>
+                            <Form.Item
+                                name="vip_expiry"
+                                label="VIP Expiry Date"
+                                rules={[{ required: true, message: "Please select expiry date" }]}
+                            >
+                                <DatePicker style={{ width: "100%" }} />
+                            </Form.Item>
+                        </Col>
                         <Col xs={24} sm={12}>
                             <Form.Item
                                 name="vip_status"

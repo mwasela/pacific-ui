@@ -44,8 +44,8 @@ export default function Financial() {
   const [numberPlateInput, setNumberPlateInput] = useState("");
   const [numberPlate, setNumberPlate] = useState("");
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, "day"), dayjs()]);
-  const [paidStatus, setPaidStatus] = useState(0);
-  const [freeVisit, setFreeVisit] = useState(1);
+  const [paidStatus, setPaidStatus] = useState('0');
+  const [freeVisit, setFreeVisit] = useState(null);
   const [manualPay, setManualPay] = useState(null);
   const [visitStatus, setVisitStatus] = useState(null);
   const [summaryPeriod, setSummaryPeriod] = useState("1m");
@@ -78,9 +78,9 @@ export default function Financial() {
       paid_status: paidStatus !== null ? paidStatus : undefined,
       free_visit: freeVisit !== null ? freeVisit : undefined,
       manual_pay: manualPay !== null ? manualPay : undefined,
-      visit_status: visitStatus !== null ? visitStatus : undefined,
+      visit_status: 0,  // Always filter for closed visits only
     };
-  }, [dateRange, numberPlate, paidStatus, freeVisit, manualPay, visitStatus]);
+  }, [dateRange, numberPlate, paidStatus, freeVisit, manualPay]);
 
   const fetchRevenue = async () => {
     setLoading(true);
@@ -108,51 +108,52 @@ export default function Financial() {
     fetchRevenue();
   }, [filters]);
 
-  const fetchSummaryAnalytics = async (period = summaryPeriod) => {
-    const range = getSummaryPeriodRange(period);
-    setSummaryLoading(true);
+  // const fetchSummaryAnalytics = async (period = summaryPeriod) => {
+  //   const range = getSummaryPeriodRange(period);
+  //   setSummaryLoading(true);
 
-    try {
-      const params = {
-        from: range.from.format("YYYY-MM-DD"),
-        to: range.to.format("YYYY-MM-DD"),
-      };
+  //   try {
+  //     const params = {
+  //       from: range.from.format("YYYY-MM-DD"),
+  //       to: range.to.format("YYYY-MM-DD"),
+  //     };
 
-      const [totalRes, exitsRes, pendingExitsRes, pendingRes, manualRes, mpesaRes, manualExitsRes, mpesaExitsRes] = await Promise.all([
-        axios.get("/analytics/revenue", { params }),
-        axios.get("/analytics/revenue", { params: { ...params, visit_status: 0 } }),
-        axios.get("/analytics/revenue", { params: { ...params, visit_status: 1 } }),
-        axios.get("/analytics/revenue", { params: { ...params, paid_status: 1 } }),
-        axios.get("/analytics/revenue", { params: { ...params, manual_pay: 1 } }),
-        axios.get("/analytics/revenue", { params: { ...params, manual_pay: 0 } }),
-        axios.get("/analytics/revenue", { params: { ...params, visit_status: 0, manual_pay: 1 } }),
-        axios.get("/analytics/revenue", { params: { ...params, visit_status: 0, manual_pay: 0 } }),
-      ]);
+  //     const [totalRes, exitsRes, pendingExitsRes, pendingRes, manualRes, mpesaRes, manualExitsRes, mpesaExitsRes] = await Promise.all([
+  //       axios.get("/analytics/revenue", { params }),
+  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "1" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, paid_status: "1" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, manual_pay: "1" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, mpesa_pay: "1" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, mpesa_pay: "0" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0", manual_pay: "1" } }),
+  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0", manual_pay: "0" } }),
+  //     ]);
 
-      const manualRevenue = Number(manualRes.data?.total_revenue || 0);
-      const mpesaRevenue = Number(mpesaRes.data?.total_revenue || 0);
-      const successfulExits = Number(exitsRes.data?.raw_visit_records || 0);
-      const manualExits = Number(manualExitsRes.data?.raw_visit_records || 0);
-      const mpesaExits = Number(mpesaExitsRes.data?.raw_visit_records || 0);
+  //     const manualRevenue = Number(manualRes.data?.total_revenue || 0);
+  //     const mpesaRevenue = Number(mpesaRes.data?.total_revenue || 0);
+  //     const successfulExits = Number(exitsRes.data?.raw_visit_records || 0);
+  //     const manualExits = Number(manualExitsRes.data?.raw_visit_records || 0);
+  //     const mpesaExits = Number(mpesaExitsRes.data?.raw_visit_records || 0);
 
-      setSummaryAnalytics({
-        expected_revenue: Number(totalRes.data?.total_revenue || 0),
-        collected_revenue: manualRevenue + mpesaRevenue,
-        successful_exits: successfulExits,
-        pending_exits: Number(pendingExitsRes.data?.raw_visit_records || 0),
-        pending_amount: Number(pendingRes.data?.total_revenue || 0),
-        manual_revenue: manualRevenue,
-        mpesa_revenue: mpesaRevenue,
-        all_entries: Number(totalRes.data?.raw_visit_records || 0),
-        manual_exits: manualExits,
-        mpesa_exits: mpesaExits,
-      });
-    } catch (error) {
-      message.error(error.response?.data?.error || "Failed to fetch summary analytics");
-    } finally {
-      setSummaryLoading(false);
-    }
-  };
+  //     setSummaryAnalytics({
+  //       expected_revenue: Number(totalRes.data?.total_revenue || 0),
+  //       collected_revenue: manualRevenue + mpesaRevenue,
+  //       successful_exits: successfulExits,
+  //       pending_exits: Number(pendingExitsRes.data?.raw_visit_records || 0),
+  //       pending_amount: Number(pendingRes.data?.total_revenue || 0),
+  //       manual_revenue: manualRevenue,
+  //       mpesa_revenue: mpesaRevenue,
+  //       all_entries: Number(totalRes.data?.raw_visit_records || 0),
+  //       manual_exits: manualExits,
+  //       mpesa_exits: mpesaExits,
+  //     });
+  //   } catch (error) {
+  //     message.error(error.response?.data?.error || "Failed to fetch summary analytics");
+  //   } finally {
+  //     setSummaryLoading(false);
+  //   }
+  // };
 
   useEffect(() => {
     fetchSummaryAnalytics(summaryPeriod);
@@ -161,6 +162,13 @@ export default function Financial() {
   const applyNumberPlateFilter = () => {
     setNumberPlate(numberPlateInput.trim());
   };
+
+const fetchSummaryAnalytics = async (period) => {
+  const res = await axios.get(`/analytics/summary?period=${summaryPeriod}`);
+  //console.log("Summary analytics response:", res.data);
+  setSummaryAnalytics(res.data);
+};
+
 
   const handleDownloadPDF = async () => {
     try {
@@ -499,13 +507,13 @@ export default function Financial() {
                     </Card>
                   </Col>
                   <Col xs={24} sm={12} lg={8}>
-                    <Card loading={summaryLoading}>
+                    {/* <Card loading={summaryLoading}>
                       <Statistic
                         title="Pending Amount"
                         value={toMoney(summaryAnalytics.pending_amount)}
                         valueStyle={{ color: "#ad6800" }}
                       />
-                    </Card>
+                    </Card> */}
                   </Col>
                 </Row>
 
