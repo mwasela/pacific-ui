@@ -56,28 +56,30 @@ export default function Confee() {
       }
 
       const res = await axios.get("/confee", { params });
+      //console.log("Fetched convenience fee data:", res.data);
       
-      if (Array.isArray(res.data)) {
-        setConfeeData(res.data);
+      if (res.data.data && Array.isArray(res.data.data)) {
+        const confeeRecords = res.data.data;
+        setConfeeData(confeeRecords);
         
         // Calculate statistics
-        const totalAmount = res.data.reduce((sum, item) => sum + (item.con_fee || 0), 0);
-        const paidCount = res.data.filter(item => item.status === 1).length;
-        const pendingCount = res.data.filter(item => item.status === 0).length;
+        const totalAmount = confeeRecords.reduce((sum, item) => sum + (item.con_fee || 0), 0);
+        const paidCount = confeeRecords.filter(item => item.status === 1).length;
+        const pendingCount = confeeRecords.filter(item => item.status === 0).length;
         
         setStats({
-          totalFees: res.data.length,
+          totalFees: res.data.total || confeeRecords.length,
           totalAmount,
-          averageFee: res.data.length > 0 ? Math.round(totalAmount / res.data.length) : 0,
+          averageFee: confeeRecords.length > 0 ? Math.round(totalAmount / confeeRecords.length) : 0,
           paidCount,
           pendingCount
         });
 
-        // Update pagination - assuming backend doesn't return total, so we estimate
+        // Update pagination with actual total from backend
         setPagination({
           current: page,
           pageSize: limit,
-          total: res.data.length >= limit ? page * limit + 10 : page * limit
+          total: res.data.total || 0
         });
       }
     } catch (error) {
@@ -104,8 +106,8 @@ export default function Confee() {
     fetchConfeeData(1, pagination.pageSize, null, null, "");
   };
 
-  const handleTableChange = (newPagination) => {
-    fetchConfeeData(newPagination.current, newPagination.pageSize, startDate, endDate, numberPlate);
+  const handleTableChange = (page, pageSize) => {
+    fetchConfeeData(page, pageSize, startDate, endDate, numberPlate);
   };
 
   const showDetails = (record) => {
@@ -375,6 +377,7 @@ export default function Confee() {
               pageSize: pagination.pageSize,
               total: pagination.total,
               onChange: handleTableChange,
+              onShowSizeChange: handleTableChange,
               showSizeChanger: true,
               pageSizeOptions: ["10", "25", "50", "100"]
             }}
