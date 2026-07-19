@@ -10,7 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@ant-design/pro-components": "^2.8.10",
     "antd": "^6.3.5",
     "axios": "^1.14.0",
     "jspdf-autotable": "^5.0.7",
