@@ -61,6 +61,7 @@ export default function Financial() {
     collected_revenue: 0,
     successful_exits: 0,
     pending_exits: 0,
+    unpaid_exits: 0,
     pending_amount: 0,
     manual_revenue: 0,
     mpesa_revenue: 0,
@@ -254,6 +255,7 @@ const fetchSummaryAnalytics = async (period) => {
         ["Collected Revenue", `KES ${Number(summaryAnalytics.collected_revenue).toLocaleString()}`],
         ["Successful Exits", summaryAnalytics.successful_exits.toString()],
         ["Pending Exits", summaryAnalytics.pending_exits.toString()],
+        ["Unpaid Exits", summaryAnalytics.unpaid_exits.toString()],
         //["Pending Amount", `KES ${Number(summaryAnalytics.pending_amount).toLocaleString()}`],
         ["Manual Revenue", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
         ["Mpesa Revenue", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
@@ -368,13 +370,13 @@ const fetchSummaryAnalytics = async (period) => {
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={8}>
-            {/* <Card loading={summaryLoading}>
+            <Card loading={summaryLoading}>
               <Statistic
-                title="Pending Amount"
-                value={toMoney(summaryAnalytics.pending_amount)}
-                valueStyle={{ color: "#ad6800" }}
+                title="Free Exits"
+                value={summaryAnalytics.unpaid_exits}
+                valueStyle={{ color: "#eb2f96" }}
               />
-            </Card> */}
+            </Card>
           </Col>
         </Row>
 
