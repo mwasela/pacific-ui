@@ -206,10 +206,8 @@ export default function Manual() {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
-        <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "24px" }}>
-        Manual Exits
-      </div>
+    <div style={{ padding: "14px" }}>
+  
       <div style={{ display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
         <Card
           title="Entry Barrier"

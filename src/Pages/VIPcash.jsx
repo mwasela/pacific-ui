@@ -163,7 +163,7 @@ export default function VIPcash() {
 
   return (
     <>
-      <Card title="VIP Payment Transactions" style={{ margin: 24 }}>
+      <Card title="Tenants Payments Transactions" style={{ margin: 24 }}>
         <Table
           rowKey="id"
           loading={loading}

@@ -60,31 +60,50 @@ function MiniLineChart({ points }) {
   }
 
   return (
-    <div style={{ width: "100%", overflowX: "auto" }}>
-      <svg width={width} height={height} role="img" aria-label="Transactions amount chart">
-        <defs>
-          <linearGradient id="amountGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#1677ff" stopOpacity="0.35" />
-            <stop offset="100%" stopColor="#1677ff" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
+    <div style={{ width: "100%" }}>
+      <div style={{ width: "100%", overflowX: "auto" }}>
+        <svg width={width} height={height} role="img" aria-label="Transactions amount chart">
+          <defs>
+            <linearGradient id="amountGradient" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#1677ff" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="#1677ff" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
 
-        <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d9d9d9" />
+          <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#d9d9d9" />
 
-        <polyline fill="none" stroke="#1677ff" strokeWidth="3" points={polyline} />
+          <polyline fill="none" stroke="#1677ff" strokeWidth="3" points={polyline} />
 
-        {chartPoints.map((p) => (
-          <g key={`${p.label}-${p.x}`}>
-            <circle cx={p.x} cy={p.y} r="4" fill="#1677ff" />
-          </g>
-        ))}
-      </svg>
+          {chartPoints.map((p) => (
+            <g key={`${p.label}-${p.x}`}>
+              <circle cx={p.x} cy={p.y} r="4" fill="#1677ff" />
+            </g>
+          ))}
+
+          {chartPoints.map((p) => {
+            const timeOnly = p.label.includes(" ") ? p.label.split(" ")[1] : p.label;
+            const timeWithoutSeconds = timeOnly.split(":").slice(0, 2).join(":");
+            return (
+              <text
+                key={`time-${p.x}`}
+                x={p.x}
+                y={height - padding + 16}
+                textAnchor="middle"
+                fontSize="12"
+                fill="#666"
+              >
+                {timeWithoutSeconds}
+              </text>
+            );
+          })}
+        </svg>
+      </div>
     </div>
   );
 }
 
 export default function Home() {
-  const [bucket, setBucket] = useState("day");
+  const [bucket, setBucket] = useState("hour");
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState(null);
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
@@ -93,14 +112,13 @@ export default function Home() {
 
   const range = useMemo(() => {
     const to = new Date();
-    const from = new Date();
-    from.setDate(to.getDate() - 30);
+    const from = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 0, 0, 0, 0);
     return { from: toQueryDate(from), to: toQueryDate(to) };
   }, []);
 
   const monthRange = useMemo(() => {
     const to = new Date();
-    const from = new Date(to.getFullYear(), to.getMonth(), 1, 0, 0, 0, 0);
+    const from = new Date(to.getFullYear(), to.getMonth(), to.getDate(), 0, 0, 0, 0);
     return { from: toQueryDate(from), to: toQueryDate(to) };
   }, []);
 
@@ -193,7 +211,7 @@ export default function Home() {
           <Title level={3} style={{ margin: 0 }}>
             Analytics Overview
           </Title>
-          <Text type="secondary">Last 30 days summary</Text>
+          <Text type="secondary">Today's summary</Text>
         </div>
 
         <Spin spinning={loading}>
@@ -201,8 +219,17 @@ export default function Home() {
             <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
                 <Statistic
-                  title="Monthly Revenue"
+                  title="Today's Revenue"
                   value={formatCurrency(summary?.total_amount)}
+                  valueStyle={{ color: "#389e0d" }}
+                />
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} lg={8} xl={5}>
+              <Card>
+                <Statistic 
+                  title="This Month's Revenue" 
+                  value={formatCurrency(summary?.this_months)}
                   valueStyle={{ color: "#389e0d" }}
                 />
               </Card>
@@ -218,7 +245,7 @@ export default function Home() {
             </Col> */}
             <Col xs={24} sm={12} lg={8} xl={5}>
               <Card>
-                <Statistic title="Total Transactions" value={summary?.total_transactions || 0} />
+                <Statistic title="Total Transactions Today" value={summary?.total_transactions || 0} />
               </Card>
 
             </Col>
@@ -227,14 +254,9 @@ export default function Home() {
                 <Statistic title="Unique Plates" value={summary?.unique_plates || 0} />
               </Card>
             </Col>
-            <Col xs={24} sm={12} lg={8} xl={5}>
-              <Card>
-                <Statistic title="Pending Exits" value={summary?.pending_exits || 0} />
-              </Card>
-            </Col>
             <Col xs={24} sm={12} lg={8} xl={4}>
               <Card>
-                <Statistic title="Completed Sessions" value={summary?.completed_sessions || 0} />
+                <Statistic title="Completed Today" value={summary?.completed_sessions || 0} />
               </Card>
               {/* <Card>
                 <Statistic

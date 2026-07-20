@@ -47,7 +47,7 @@ export default function Financial() {
   const [freeVisit, setFreeVisit] = useState(null);
   const [manualPay, setManualPay] = useState(null);
   const [visitStatus, setVisitStatus] = useState(null);
-  const [summaryPeriod, setSummaryPeriod] = useState("1m");
+  const [summaryDateRange, setSummaryDateRange] = useState([dayjs().subtract(30, "day"), dayjs()]);
   const [analytics, setAnalytics] = useState({
     total_revenue: 0,
     unique_number_plates: 0,
@@ -68,6 +68,7 @@ export default function Financial() {
     all_entries: 0,
     manual_exits: 0,
     mpesa_exits: 0,
+    tenant_exits: 0,
   });
 
   const filters = useMemo(() => {
@@ -154,17 +155,27 @@ export default function Financial() {
   // };
 
   useEffect(() => {
-    fetchSummaryAnalytics(summaryPeriod);
-  }, [summaryPeriod]);
+    fetchSummaryAnalytics();
+  }, [summaryDateRange]);
 
   const applyNumberPlateFilter = () => {
     setNumberPlate(numberPlateInput.trim());
   };
 
-const fetchSummaryAnalytics = async (period) => {
-  const res = await axios.get(`/analytics/summary?period=${summaryPeriod}`);
-  //console.log("Summary analytics response:", res.data);
-  setSummaryAnalytics(res.data);
+const fetchSummaryAnalytics = async () => {
+  setSummaryLoading(true);
+  try {
+    const params = {
+      from: summaryDateRange?.[0] ? summaryDateRange[0].format("YYYY-MM-DD") : undefined,
+      to: summaryDateRange?.[1] ? summaryDateRange[1].format("YYYY-MM-DD") : undefined,
+    };
+    const res = await axios.get("/analytics/summary", { params });
+    setSummaryAnalytics(res.data);
+  } catch (error) {
+    message.error(error.response?.data?.error || "Failed to fetch summary analytics");
+  } finally {
+    setSummaryLoading(false);
+  }
 };
 
 
@@ -242,7 +253,11 @@ const fetchSummaryAnalytics = async (period) => {
         format: "a4",
       });
 
-      const range = getSummaryPeriodRange(summaryPeriod);
+      const selectedPeriod =
+        summaryDateRange?.[0] && summaryDateRange?.[1]
+          ? `${summaryDateRange[0].format("YYYY-MM-DD")} to ${summaryDateRange[1].format("YYYY-MM-DD")}`
+          : "All Time";
+      
       const logoImage = await loadLogoImage();
       const logoWidth = 35;
       const logoHeight = (logoImage.naturalHeight / logoImage.naturalWidth) * logoWidth;
@@ -254,14 +269,14 @@ const fetchSummaryAnalytics = async (period) => {
         // ["Expected Revenue", `KES ${Number(summaryAnalytics.expected_revenue).toLocaleString()}`],
         ["Collected Revenue", `KES ${Number(summaryAnalytics.collected_revenue).toLocaleString()}`],
         ["Successful Exits", summaryAnalytics.successful_exits.toString()],
-        ["Pending Exits", summaryAnalytics.pending_exits.toString()],
-        ["Unpaid Exits", summaryAnalytics.unpaid_exits.toString()],
+        ["Free Exits", summaryAnalytics.unpaid_exits.toString()],
         //["Pending Amount", `KES ${Number(summaryAnalytics.pending_amount).toLocaleString()}`],
         ["Manual Revenue", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
         ["Mpesa Revenue", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
         ["All Entries (Visits)", summaryAnalytics.all_entries.toString()],
         ["Manual Exits", summaryAnalytics.manual_exits.toString()],
         ["Mpesa Exits", summaryAnalytics.mpesa_exits.toString()],
+        ["Tenant Exits", summaryAnalytics.tenant_exits.toString()],
       ];
 
       autoTable(pdf, {
@@ -280,7 +295,7 @@ const fetchSummaryAnalytics = async (period) => {
       pdf.addImage(logoImage, "PNG", logoX, logoY, logoWidth, logoHeight);
 
       pdf.setFontSize(9);
-      pdf.text(`Period: ${range.label}`, 10, 35);
+      pdf.text(`Period: ${selectedPeriod}`, 10, 35);
 
       const filename = `financial_summary_${dayjs().format("YYYY-MM-DD_HHmmss")}.pdf`;
       pdf.save(filename);
@@ -293,12 +308,12 @@ const fetchSummaryAnalytics = async (period) => {
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
-      <div>
+      {/* <div>
         <Title level={3} style={{ margin: 0 }}>
           Financial Analytics
         </Title>
         <Text type="secondary">Revenue summary with detailed filters and period reporting</Text>
-      </div>
+      </div> */}
 
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
         <Card title="Summary Period" loading={summaryLoading}>
@@ -308,14 +323,11 @@ const fetchSummaryAnalytics = async (period) => {
             style={{ width: "100%", justifyContent: "space-between" }}
             wrap
           >
-            <Segmented
-              value={summaryPeriod}
-              onChange={setSummaryPeriod}
-              options={[
-                { label: "Last 24 Hours", value: "24h" },
-                { label: "Last 7 Days", value: "7d" },
-                { label: "Last 1 Month", value: "1m" },
-              ]}
+            <DatePicker.RangePicker
+              value={summaryDateRange}
+              onChange={setSummaryDateRange}
+              format="YYYY-MM-DD"
+              style={{ width: screens.md ? "auto" : "100%" }}
             />
             <Button
               type="primary"
@@ -328,7 +340,7 @@ const fetchSummaryAnalytics = async (period) => {
             </Button>
           </Space>
           <Text type="secondary" style={{ display: "block", marginTop: 8 }}>
-            Showing {getSummaryPeriodRange(summaryPeriod).label}
+            Showing data from {summaryDateRange?.[0]?.format("YYYY-MM-DD")} to {summaryDateRange?.[1]?.format("YYYY-MM-DD")}
           </Text>
         </Card>
 
@@ -363,18 +375,18 @@ const fetchSummaryAnalytics = async (period) => {
           <Col xs={24} sm={12} lg={8}>
             <Card loading={summaryLoading}>
               <Statistic
-                title="Pending Exits"
-                value={summaryAnalytics.pending_exits}
-                valueStyle={{ color: "#fa8c16" }}
+                title="Free Exits"
+                value={summaryAnalytics.unpaid_exits}
+                valueStyle={{ color: "#eb2f96" }}
               />
             </Card>
           </Col>
           <Col xs={24} sm={12} lg={8}>
             <Card loading={summaryLoading}>
               <Statistic
-                title="Free Exits"
-                value={summaryAnalytics.unpaid_exits}
-                valueStyle={{ color: "#eb2f96" }}
+                title="Tenant Exits"
+                value={summaryAnalytics.tenant_exits}
+                valueStyle={{ color: "#1d39c4" }}
               />
             </Card>
           </Col>

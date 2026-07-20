@@ -74,6 +74,7 @@ export default function VIP() {
             email: record.email,
             phone_number: record.phone_number,
             vehicle_number: record.vehicle_number,
+            code: record.code,
             vip_status: record.vip_status,
             vip_expiry: record.vip_expiry ? dayjs(record.vip_expiry) : null,
         });
@@ -101,6 +102,7 @@ export default function VIP() {
                 lname: values.lname,
                 email: values.email,
                 phone_number: values.phone_number,
+                code: values.code,
                 vehicle_number: values.vehicle_number,
                 vip_status: Number(values.vip_status),
                 vip_expiry: values.vip_expiry ? values.vip_expiry.toISOString() : null,
@@ -109,17 +111,17 @@ export default function VIP() {
 
             if (editingRecord) {
                 await axios.put(`/vip/${editingRecord.id}`, payload);
-                message.success("VIP record updated successfully");
+                message.success("Tenant record updated successfully");
             } else {
                 await axios.post("/vip", payload);
-                message.success("VIP record created successfully");
+                message.success("Tenant record created successfully");
             }
 
             closeModal();
             fetchVIP(pagination.current, pagination.pageSize);
         } catch (error) {
             if (error?.errorFields) return;
-            message.error(error.response?.data?.message || "Failed to save VIP record");
+            message.error(error.response?.data?.message || "Failed to save Tenant record");
         } finally {
             setSaveLoading(false);
         }
@@ -127,10 +129,11 @@ export default function VIP() {
 
     const columns = [
         {
-            title: "ID",
-            dataIndex: "id",
+            title: "Tenant ID",
+            dataIndex: "code",
             width: 70,
         },
+
         {
             title: "First Name",
             dataIndex: "fname",
@@ -169,7 +172,7 @@ export default function VIP() {
             ) : "-",
         },
         {
-            title: "VIP Status",
+            title: "Tenant Status",
             dataIndex: "vip_status",
             width: 120,
             render: (status) => {
@@ -188,7 +191,7 @@ export default function VIP() {
             },
         },
         {
-            title: "VIP Expiry",
+            title: "Tenant Expiry",
             dataIndex: "vip_expiry",
             width: 170,
             render: (value) => value ? new Date(value).toLocaleDateString() : "-",
@@ -221,11 +224,11 @@ export default function VIP() {
     return (
         <>
             <Card
-                title="VIP Records"
+                title="Tenant Records"
                 style={{ margin: 24 }}
                 extra={
                     <Button type="primary" onClick={openCreateModal}>
-                        Add VIP
+                        Add Tenant
                     </Button>
                 }
             >
@@ -247,7 +250,7 @@ export default function VIP() {
             </Card>
 
             <Modal
-                title={editingRecord ? "Edit VIP Record" : "Add VIP Record"}
+                title={editingRecord ? "Edit Tenant Record" : "Add Tenant Record"}
                 open={isModalOpen}
                 onCancel={closeModal}
                 onOk={handleSave}
@@ -312,13 +315,27 @@ export default function VIP() {
                         </Col>
                     </Row>
 
+            
+                    <Row gutter={12}>
+                        <Col xs={24} sm={12}>
+                            <Form.Item
+                                name="code"
+                                label="Tenant Code"
+                                rules={[{ required: true, message: "Please enter tenant code" }]}   
+                            
+                            >
+                                <Input placeholder="e.g. T001" />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+
                     
 
                     <Row gutter={12}>
                         <Col xs={24} sm={12}>
                             <Form.Item
                                 name="vip_expiry"
-                                label="VIP Expiry Date"
+                                label="Tenant Expiry Date"
                                 rules={[{ required: true, message: "Please select expiry date" }]}
                             >
                                 <DatePicker style={{ width: "100%" }} />
@@ -327,7 +344,7 @@ export default function VIP() {
                         <Col xs={24} sm={12}>
                             <Form.Item
                                 name="vip_status"
-                                label="VIP Status"
+                                label="Tenant Status"
                                 rules={[{ required: true, message: "Please select status" }]}
                             >
                                         <Select options={[

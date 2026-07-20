@@ -55,7 +55,7 @@ export default function MainLayout() {
         {
             key: "/vipcash",
             icon: <FiCreditCard />,
-            label: <Link to="/vipcash">VIP Payments</Link>,
+            label: <Link to="/vipcash">Tenants Payments</Link>,
         },
         {
             key: "/vip",
@@ -152,7 +152,7 @@ export default function MainLayout() {
                 }}
             >
                 <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, padding: "16px 20px" }}>
-                    Pacific
+                    Pacific Crest Mall
                 </div>
                 {/* <div style={{ textAlign: "center", marginBottom: 16 }}>
                     <img src={logo} alt="Logo" style={{ width: 120, height: "auto" }} />
@@ -169,6 +169,7 @@ export default function MainLayout() {
                         alignItems: "center",
                         padding: "0 20px",
                         borderBottom: "1px solid #f0f0f0",
+                        height: 32,
                     }}
                 >
                     <Dropdown menu={{ items: userMenuItems }} trigger={["click"]}>
