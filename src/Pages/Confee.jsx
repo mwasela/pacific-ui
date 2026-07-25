@@ -315,7 +315,7 @@ export default function Confee() {
         </Row>
       </Card>
 
-      {/* Statistics Cards */}
+      {/* Statistics Cards
       <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
@@ -364,7 +364,7 @@ export default function Confee() {
             </Row>
           </Card>
         </Col>
-      </Row>
+      </Row> */}
 
       {/* Data Table */}
       <Card title="Convenience Fee Entries" loading={loading}>
