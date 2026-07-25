@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useContext } from 'react';
 import { Card, Table, Button, Space, DatePicker, Select, message, Row, Col, Input } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import axios from '../helpers/axios';
@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import logo from '../assets/logo.png';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { TitleContext } from '../context/TitleContext';
 
 const actionMap = {
   0: 'Entry',
@@ -26,6 +27,7 @@ const loadLogoImage = () =>
   });
 
 export default function Viplogs() {
+  const { setPageTitle } = useContext(TitleContext);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [startTime, setStartTime] = useState(null);
@@ -39,6 +41,11 @@ export default function Viplogs() {
     pageSize: 10,
     total: 0,
   });
+
+  useEffect(() => {
+    setPageTitle("Tenant Logs");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const fetchVipLogs = async (start = null, end = null, field = 'createdAt', direction = 'desc', pageSize = 10, plate = '') => {
     setLoading(true);
@@ -238,10 +245,10 @@ export default function Viplogs() {
   ];
 
   return (
-    <div style={{ padding: '24px' }}>
+    <div style={{ padding: '3px' }}>
       <Card
-        title="VIP Logs Filters"
-        style={{ marginBottom: '24px' }}
+        // title="Tenants Activity Logs Filters"
+        style={{ marginBottom: '6px' }}
       >
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} md={6}>
@@ -322,7 +329,7 @@ export default function Viplogs() {
         </Row>
       </Card>
 
-      <Card title="VIP Activity Logs" extra={
+      <Card title="Tenants Activity Logs" extra={
         <Button 
           type="primary" 
           icon={<DownloadOutlined />} 

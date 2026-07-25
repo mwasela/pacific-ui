@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useContext } from "react";
 import {
   Card,
   Col,
@@ -14,6 +14,7 @@ import {
   message,
 } from "antd";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
 const { Title, Text } = Typography;
 
@@ -109,6 +110,12 @@ export default function Home() {
   const [monthlyRevenue, setMonthlyRevenue] = useState(0);
   const [series, setSeries] = useState([]);
   const [recentTransactions, setRecentTransactions] = useState([]);
+  const { setPageTitle } = useContext(TitleContext);
+
+  useEffect(() => {
+    setPageTitle("Analytics Overview");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const range = useMemo(() => {
     const to = new Date();
@@ -205,15 +212,8 @@ export default function Home() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
+    <div style={{ padding: '3px' }}>
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <div>
-          <Title level={3} style={{ margin: 0 }}>
-            Analytics Overview
-          </Title>
-          <Text type="secondary">Today's summary</Text>
-        </div>
-
         <Spin spinning={loading}>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12} lg={8} xl={5}>

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Table, message, Button, Modal, Form, Input, Select, Space, Tag } from "antd";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
 
 const roleMap = {
@@ -15,6 +16,7 @@ const statusMap = {
 };
 
 export default function Users() {
+    const { setPageTitle } = useContext(TitleContext);
     const [form] = Form.useForm();
     const [data, setData] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -26,6 +28,11 @@ export default function Users() {
         pageSize: 10,
         total: 0,
     });
+
+    useEffect(() => {
+        setPageTitle("Users");
+        return () => setPageTitle("");
+    }, [setPageTitle]);
 
     const openCreateModal = () => {
         setEditingUser(null);
@@ -197,8 +204,7 @@ export default function Users() {
     return (
         <>
             <Card
-                title="Users"
-                style={{ margin: 24 }}
+                style={{ margin: 6 }}
                 extra={
                     <Button type="primary" onClick={openCreateModal}>
                         Add User

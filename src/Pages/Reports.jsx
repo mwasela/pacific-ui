@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Table, Tag, message, Button, Modal, Descriptions, Form, Input, Space, DatePicker, Select, Grid } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import { jsPDF } from "jspdf";
@@ -6,6 +6,7 @@ import autoTable from "jspdf-autotable";
 import dayjs from "dayjs";
 import axios from "../helpers/axios";
 import logo from "../assets/logo.png";
+import { TitleContext } from "../context/TitleContext";
 
 const statusColorMap = {
   COMPLETED: "#52c41a",
@@ -52,6 +53,7 @@ const loadLogoImage = () =>
   });
 
 export default function Visits() {
+  const { setPageTitle } = useContext(TitleContext);
   const screens = Grid.useBreakpoint();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -73,11 +75,12 @@ export default function Visits() {
   const [sendingStk, setSendingStk] = useState(false);
   const [stkForm] = Form.useForm();
 
+  useEffect(() => {
+    setPageTitle("Reports");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
+
   const getVisitId = (transaction) => transaction?.visit_id ?? transaction?.Visit?.id;
-  const isUnpaid = (transaction) => {
-    const paidStatus = transaction?.Visit?.paid_status ?? transaction?.paid_status;
-    return Number(paidStatus) === 1;
-  };
 
   const openVisitModal = (transaction) => {
     setSelectedTransaction(transaction || null);
@@ -87,12 +90,6 @@ export default function Visits() {
   const closeVisitModal = () => {
     setSelectedTransaction(null);
     setIsVisitModalOpen(false);
-  };
-
-  const openStkModal = (transaction) => {
-    setStkVisitId(getVisitId(transaction) ?? null);
-    stkForm.resetFields();
-    setIsStkModalOpen(true);
   };
 
   const closeStkModal = () => {
@@ -126,26 +123,43 @@ export default function Visits() {
     }
   };
 
-  const fetchTransactions = async (current = 1, pageSize = 10, plate = numberPlate, range = dateRange, status = paidStatus, visit = freeVisit, payment = manualPay, visitStat = visitStatus) => {
+  // Modernized parameter fetching via a single filter object to prevent state drop bugs
+  const fetchTransactions = async (
+    current = pagination.current,
+    pageSize = pagination.pageSize,
+    overrideFilters = {}
+  ) => {
     setLoading(true);
+    
+    // Merge state with any inline override passed by individual handlers
+    const filters = {
+      plate: numberPlate,
+      range: dateRange,
+      status: paidStatus,
+      visit: freeVisit,
+      payment: manualPay,
+      visitStat: visitStatus,
+      ...overrideFilters
+    };
+
     try {
       const res = await axios.get("/transactions/transactions/range", {
         params: {
           current,
           pageSize,
-          number_plate: plate || undefined,
-          from: range?.[0] ? range[0].format("YYYY-MM-DD") : undefined,
-          to: range?.[1] ? range[1].format("YYYY-MM-DD") : undefined,
-          paid_status: status !== null ? status : undefined,
-          free_visit: visit !== null ? visit : undefined,
-          manual_pay: payment !== null ? payment : undefined,
-          visit_status: visitStat !== null ? visitStat : undefined,
+          number_plate: filters.plate || undefined,
+          from: filters.range?.[0] ? filters.range[0].format("YYYY-MM-DD") : undefined,
+          to: filters.range?.[1] ? filters.range[1].format("YYYY-MM-DD") : undefined,
+          paid_status: filters.status !== null ? filters.status : undefined,
+          free_visit: filters.visit !== null ? filters.visit : undefined,
+          manual_pay: filters.payment !== null ? filters.payment : undefined,
+          visit_status: filters.visitStat !== null ? filters.visitStat : undefined,
         },
       });
 
       const payload = res.data;
       const rows = Array.isArray(payload) ? payload : payload?.data || [];
-      const total = Array.isArray(payload) ? payload.length : payload?.total || 0;
+      const total = Array.isArray(payload) ? payload.length : payload?.pagination?.total || payload?.total || 0;
 
       setData(rows);
       setPagination({
@@ -167,32 +181,32 @@ export default function Visits() {
   const handleNumberPlateSearch = (event) => {
     const value = event.target.value;
     setNumberPlate(value);
-    fetchTransactions(1, pagination.pageSize, value, dateRange);
+    fetchTransactions(1, pagination.pageSize, { plate: value });
   };
 
   const handleDateRangeChange = (range) => {
     setDateRange(range);
-    fetchTransactions(1, pagination.pageSize, numberPlate, range, paidStatus);
+    fetchTransactions(1, pagination.pageSize, { range });
   };
 
   const handlePaidStatusChange = (value) => {
     setPaidStatus(value);
-    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, value, freeVisit);
+    fetchTransactions(1, pagination.pageSize, { status: value });
   };
 
   const handleFreeVisitChange = (value) => {
     setFreeVisit(value);
-    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, value);
+    fetchTransactions(1, pagination.pageSize, { visit: value });
   };
 
   const handleManualPayChange = (value) => {
     setManualPay(value);
-    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, freeVisit, value);
+    fetchTransactions(1, pagination.pageSize, { payment: value });
   };
 
   const handleVisitStatusChange = (value) => {
     setVisitStatus(value);
-    fetchTransactions(1, pagination.pageSize, numberPlate, dateRange, paidStatus, freeVisit, manualPay, value);
+    fetchTransactions(1, pagination.pageSize, { visitStat: value });
   };
 
   const handleDownloadPDF = async () => {
@@ -240,7 +254,6 @@ export default function Visits() {
         ];
       });
 
-      // Calculate total amount
       const totalAmount = data.reduce((sum, record) => {
         const amount = Number(record.amount || 0);
         return sum + amount;
@@ -279,15 +292,14 @@ export default function Visits() {
         headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0] },
       });
 
-      // Add total amount at the bottom of the last page
       const pageHeight = pdf.internal.pageSize.getHeight();
       const totalY = pageHeight - 15;
       pdf.setFontSize(10);
-      pdf.text("Total Transactions -> ", 6, totalY - 5);
-      pdf.setFont(undefined, "bold");
-      pdf.text(`${data.length}`, 50, totalY - 5);
-      pdf.setFont(undefined, "normal");
-      pdf.text("Total Amount -> ", 6, totalY);
+      // pdf.text("Total Transactions -> ", 6, totalY - 5);
+      // pdf.setFont(undefined, "bold");
+      // pdf.text(`${data.length}`, 50, totalY - 5);
+      // pdf.setFont(undefined, "normal");
+      pdf.text("Total Revenue -> ", 6, totalY);
       pdf.setFont(undefined, "bold");
       pdf.text(`KES ${totalAmount.toLocaleString()}`, 40, totalY);
       pdf.setFont(undefined, "normal");
@@ -316,7 +328,7 @@ export default function Visits() {
       title: "Number Plate",
       dataIndex: "number_plate",
       width: 130,
-      key:"number_plate",
+      key: "number_plate",
     },
     {
       title: "Phone",
@@ -350,7 +362,7 @@ export default function Visits() {
         );
       },
     },
-        {
+    {
       title: "Transaction Code",
       dataIndex: "transaction_code",
       width: 170,
@@ -371,7 +383,6 @@ export default function Visits() {
         );
       },
     },
-
     {
       title: "Transaction Time",
       dataIndex: "Transaction_timestamp",
@@ -403,67 +414,67 @@ export default function Visits() {
 
   return (
     <>
-      <Card title="Transactions / Visits" style={{ margin: 24 }}>
+      <Card style={{ margin: 12 }}>
         <Space direction={screens.md ? "horizontal" : "vertical"} style={{ marginBottom: 16, width: "100%", justifyContent: "space-between", alignItems: screens.md ? "center" : "flex-start", gap: screens.md ? 8 : 12 }}>
           <Space direction={screens.md ? "horizontal" : "vertical"} style={{ flex: 1, width: "100%", flexWrap: "wrap", gap: screens.md ? 8 : 12 }}>
-          <Input
-            allowClear
-            placeholder="Search by number plate"
-            value={numberPlate}
-            onChange={handleNumberPlateSearch}
-            style={{ width: screens.md ? 320 : "100%", minWidth: screens.md ? 200 : "100%" }}
-          />
-          <DatePicker.RangePicker
-            value={dateRange}
-            onChange={handleDateRangeChange}
-            format="YYYY-MM-DD"
-            placeholder={["From", "To"]}
-            style={{ width: screens.md ? "auto" : "100%" }}
-          />
-          <Select
-            allowClear
-            placeholder="Select Paid Status"
-            value={paidStatus}
-            onChange={handlePaidStatusChange}
-            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
-            options={[
-              { label: "Paid", value: 0 },
-              { label: "Pending Pay", value: 1 },
-            ]}
-          />
-          <Select
-            allowClear
-            placeholder="Select Visit Type"
-            value={freeVisit}
-            onChange={handleFreeVisitChange}
-            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
-            options={[
-              { label: "Free Visits", value: 0 },
-              { label: "Paid Visits", value: 1 },
-            ]}
-          />
-          <Select
-            allowClear
-            placeholder="Select Payment Mode"
-            value={manualPay}
-            onChange={handleManualPayChange}
-            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
-            options={[
-              { label: "Manual Pay", value: 1 },
-              { label: "Mpesa payments", value: 0 },
-            ]}
-          />
-          <Select
-            allowClear
-            placeholder="Select Visit Status"
-            value={visitStatus}
-            onChange={handleVisitStatusChange}
-            style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
-            options={[
-              { label: "Completed", value: 0 },
-              { label: "Pending", value: 1 },
-            ]}
-          />
+            <Input
+              allowClear
+              placeholder="Search by number plate"
+              value={numberPlate}
+              onChange={handleNumberPlateSearch}
+              style={{ width: screens.md ? 320 : "100%", minWidth: screens.md ? 200 : "100%" }}
+            />
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={handleDateRangeChange}
+              format="YYYY-MM-DD"
+              placeholder={["From", "To"]}
+              style={{ width: screens.md ? "auto" : "100%" }}
+            />
+            <Select
+              allowClear
+              placeholder="Select Paid Status"
+              value={paidStatus}
+              onChange={handlePaidStatusChange}
+              style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+              options={[
+                { label: "Paid", value: 0 },
+                { label: "Pending Pay", value: 1 },
+              ]}
+            />
+            <Select
+              allowClear
+              placeholder="Select Visit Type"
+              value={freeVisit}
+              onChange={handleFreeVisitChange}
+              style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+              options={[
+                { label: "Free Visits", value: 0 },
+                { label: "Paid Visits", value: 1 },
+              ]}
+            />
+            <Select
+              allowClear
+              placeholder="Select Payment Mode"
+              value={manualPay}
+              onChange={handleManualPayChange}
+              style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+              options={[
+                { label: "Manual Pay", value: 1 },
+                { label: "Mpesa payments", value: 0 },
+              ]}
+            />
+            <Select
+              allowClear
+              placeholder="Select Visit Status"
+              value={visitStatus}
+              onChange={handleVisitStatusChange}
+              style={{ width: screens.md ? 200 : "100%", minWidth: screens.md ? 150 : "100%" }}
+              options={[
+                { label: "Completed", value: 0 },
+                { label: "Pending", value: 1 },
+              ]}
+            />
           </Space>
           <Button
             type="primary"
@@ -482,7 +493,7 @@ export default function Visits() {
           dataSource={data}
           scroll={{ x: "max-content" }}
           pagination={pagination}
-          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize, numberPlate, dateRange, paidStatus, freeVisit, manualPay, visitStatus)}
+          onChange={(pager) => fetchTransactions(pager.current, pager.pageSize)}
         />
       </Card>
 
@@ -513,11 +524,11 @@ export default function Visits() {
       </Modal>
 
       <Modal
-        title="Send STK Push"
+        title="STK Push"
         open={isStkModalOpen}
         onCancel={closeStkModal}
         onOk={sendStkPush}
-        okText="Send STK Push"
+        okText="STK Push"
         confirmLoading={sendingStk}
       >
         <Form form={stkForm} layout="vertical">

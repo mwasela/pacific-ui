@@ -1,10 +1,12 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { Card, Modal, Form, Input, Button, Table, message, Tag, Space, Tooltip, DatePicker, Row, Col } from "antd";
 import { InfoCircleOutlined } from "@ant-design/icons";
 import axios from "../helpers/axios";
 import dayjs from "dayjs";
+import { TitleContext } from "../context/TitleContext";
 
 export default function Manual() {
+  const { setPageTitle } = useContext(TitleContext);
   const [form] = Form.useForm();
   const [entryModalOpen, setEntryModalOpen] = useState(false);
   const [exitModalOpen, setExitModalOpen] = useState(false);
@@ -15,6 +17,11 @@ export default function Manual() {
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
   const [openedBy, setOpenedBy] = useState("");
+
+  useEffect(() => {
+    setPageTitle("Manual Exits");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const fetchManualBarrierOpenings = async (plate = numberPlate, start = startDate, end = endDate, user = openedBy) => {
     setTableLoading(true);

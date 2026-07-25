@@ -6,10 +6,12 @@ import {
   RouterProvider,
 } from "react-router-dom";
 import enUS from "antd/es/locale/en_US";
+import { TitleProvider } from "./context/TitleContext";
 
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-<ConfigProvider
+  <TitleProvider>
+    <ConfigProvider
       locale={enUS}
       theme={{
         token: {
@@ -18,8 +20,9 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         },
       }}
     >
- <RouterProvider router={router} />
-</ConfigProvider>
+      <RouterProvider router={router} />
+    </ConfigProvider>
+  </TitleProvider>
 );
 
 

@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Descriptions, Tag, Button, Modal, Form, Input, InputNumber, Select, message } from "antd";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
 const statusLabelMap = {
   0: "Active",
@@ -13,11 +14,17 @@ const statusColorMap = {
 };
 
 export default function Settings() {
+  const { setPageTitle } = useContext(TitleContext);
   const [form] = Form.useForm();
   const [setupRecord, setSetupRecord] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saveLoading, setSaveLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  useEffect(() => {
+    setPageTitle("Settings");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const fetchSetup = async () => {
     setLoading(true);

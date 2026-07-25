@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Table, Tag, Button, Modal, Descriptions, message } from "antd";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
 const VIP_PAYMENTS_ENDPOINT = "/vippayments";
 
@@ -20,6 +21,7 @@ const formatDateTime = (value) => {
 const formatCurrency = (value) => `KES ${Number(value || 0).toLocaleString()}`;
 
 export default function VIPcash() {
+  const { setPageTitle } = useContext(TitleContext);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
@@ -29,6 +31,11 @@ export default function VIPcash() {
     pageSize: 10,
     total: 0,
   });
+
+  useEffect(() => {
+    setPageTitle("Tenants Payments");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const fetchVIPPayments = async (page = 1, limit = 10) => {
     setLoading(true);
@@ -163,7 +170,7 @@ export default function VIPcash() {
 
   return (
     <>
-      <Card title="Tenants Payments Transactions" style={{ margin: 24 }}>
+      <Card style={{ margin: 12 }}>
         <Table
           rowKey="id"
           loading={loading}

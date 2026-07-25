@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Table, Tag, message, Button, Modal, Form, Input, Select, Row, Col, DatePicker } from "antd";
 import axios from "../helpers/axios";
 import dayjs from "dayjs";
+import { TitleContext } from "../context/TitleContext";
 
 // vip_status: 1 = Active, 0 = Inactive
 const vipStatusColorMap = {
@@ -30,7 +31,13 @@ export default function VIP() {
         total: 0,
     });
 
+    const { setPageTitle } = useContext(TitleContext);
     const canEdit = currentUser?.role === 1 || currentUser?.user_type === 1;
+
+    useEffect(() => {
+        setPageTitle("Tenants");
+        return () => setPageTitle("");
+    }, [setPageTitle]);
 
     useEffect(() => {
         axios.get("/users/me")
@@ -224,8 +231,8 @@ export default function VIP() {
     return (
         <>
             <Card
-                title="Tenant Records"
-                style={{ margin: 24 }}
+             
+                style={{ margin: 12 }}
                 extra={
                     <Button type="primary" onClick={openCreateModal}>
                         Add Tenant

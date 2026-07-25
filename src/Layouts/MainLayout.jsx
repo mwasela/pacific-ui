@@ -1,10 +1,15 @@
-import { Outlet, Link, useNavigate } from "react-router-dom";
-import { FiUsers, FiMap, FiHome, FiDribbble, FiClipboard, FiSettings, FiClock, FiCheckCircle, FiCreditCard, FiActivity, FiAward } from "react-icons/fi";
-import React, { useEffect, useState } from "react";
+import { Outlet, Link, useNavigate, useLocation } from "react-router-dom";
+import { FiUsers, FiMap, FiHome, FiDribbble, FiClipboard, FiSettings, FiClock, FiCheckCircle, FiCreditCard, FiActivity, FiAward, FiMenu } from "react-icons/fi";
+import React, { useEffect, useState, useContext } from "react";
 import axios from "../helpers/axios";
-import { Layout, Menu, Avatar, Dropdown, message } from "antd";
+import { Layout, Menu, Avatar, Dropdown, message, Typography, Grid, Button } from "antd";
 import { UserOutlined, LogoutOutlined  } from "@ant-design/icons";
 import logo from "../assets/logo.png";
+import avatarIcon from "../assets/avatar.png";
+import { TitleContext } from "../context/TitleContext";
+
+
+const { Title } = Typography;
 
 
 const { Header, Sider, Content, Footer } = Layout;
@@ -12,7 +17,12 @@ const { Header, Sider, Content, Footer } = Layout;
 
 export default function MainLayout() {
     const navigate = useNavigate();
+    const location = useLocation();
     const [user, setUser] = useState(null);
+    const { pageTitle } = useContext(TitleContext);
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const screens = Grid.useBreakpoint();
+    const [touchStart, setTouchStart] = useState(null);
     const token = localStorage.getItem("token");
 
     useEffect(() => {
@@ -20,6 +30,37 @@ export default function MainLayout() {
             navigate("/login");
         }
     }, [token, navigate]);
+
+    // Close sidebar when route changes
+    useEffect(() => {
+        setSidebarOpen(false);
+    }, [location.pathname]);
+
+    // Touch handlers for swipe detection
+    const handleTouchStart = (e) => {
+        setTouchStart(e.touches[0].clientX);
+    };
+
+    const handleTouchEnd = (e) => {
+        if (!touchStart) return;
+        const touchEnd = e.changedTouches[0].clientX;
+        const diff = touchEnd - touchStart;
+
+        // Swipe from left edge (0-50px) to the right
+        if (touchStart < 50 && diff > 50 && !screens.lg) {
+            setSidebarOpen(true);
+        }
+        setTouchStart(null);
+    };
+
+    useEffect(() => {
+        document.addEventListener("touchstart", handleTouchStart);
+        document.addEventListener("touchend", handleTouchEnd);
+        return () => {
+            document.removeEventListener("touchstart", handleTouchStart);
+            document.removeEventListener("touchend", handleTouchEnd);
+        };
+    }, [touchStart, screens.lg]);
 
 
     useEffect(() => {
@@ -138,49 +179,106 @@ export default function MainLayout() {
 
     return (
         <Layout style={{ minHeight: "100vh" }}>
-            <Sider 
-                theme="dark" 
-                breakpoint="lg" 
-                collapsedWidth="0"
-                style={{ 
-                    position: 'fixed',
-                    left: 0,
-                    top: 0,
-                    height: '100vh',
-                    zIndex: 999,
-                    overflow: 'auto'
-                }}
-            >
-                <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, padding: "16px 20px" }}>
-                    Pacific Crest Mall
-                </div>
-                {/* <div style={{ textAlign: "center", marginBottom: 16 }}>
-                    <img src={logo} alt="Logo" style={{ width: 120, height: "auto" }} />
-                </div> */}
-                <Menu theme="dark" mode="inline" items={menuItems} defaultSelectedKeys={["/"]} />
-            </Sider>
+            {screens.lg && (
+                <Sider 
+                    theme="dark"
+                    style={{ 
+                        position: 'fixed',
+                        left: 0,
+                        top: 0,
+                        height: '100vh',
+                        zIndex: 999,
+                        overflow: 'auto'
+                    }}
+                    width={200}
+                >
+                    <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, padding: "16px 20px" }}>
+                        Pacific Crest Mall
+                    </div>
+                    <Menu theme="dark" mode="inline" items={menuItems} defaultSelectedKeys={["/"]} />
+                </Sider>
+            )}
 
-            <Layout style={{ marginLeft: 200 }}>
+            {!screens.lg && sidebarOpen && (
+                <>
+                    {/* Overlay backdrop */}
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                            zIndex: 998,
+                            transition: 'opacity 0.3s'
+                        }}
+                        onClick={() => setSidebarOpen(false)}
+                    />
+                    <Sider 
+                        theme="dark"
+                        style={{ 
+                            position: 'fixed',
+                            left: 0,
+                            top: 0,
+                            height: '100vh',
+                            zIndex: 999,
+                            overflow: 'auto'
+                        }}
+                        width={200}
+                    >
+                        <div style={{ color: "#fff", fontSize: 18, fontWeight: 700, padding: "16px 20px" }}>
+                            Pacific Crest Mall
+                        </div>
+                        <Menu 
+                            theme="dark" 
+                            mode="inline" 
+                            items={menuItems} 
+                            defaultSelectedKeys={["/"]}
+                            onClick={() => setSidebarOpen(false)}
+                        />
+                    </Sider>
+                </>
+            )}
+
+            <Layout style={{ marginLeft: screens.lg ? 200 : 0 }}>
                 <Header
                     style={{
                         background: "#fff",
                         display: "flex",
-                        justifyContent: "flex-end",
+                        justifyContent: "space-between",
                         alignItems: "center",
                         padding: "0 20px",
                         borderBottom: "1px solid #f0f0f0",
-                        height: 32,
+                        height: 64,
                     }}
                 >
+                    <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                        {!screens.lg && (
+                            <Button 
+                                type="text" 
+                                icon={<FiMenu size={20} />}
+                                onClick={() => setSidebarOpen(!sidebarOpen)}
+                            />
+                        )}
+                        {pageTitle && (
+                            <Title level={3} style={{ margin: 0 }}>
+                                {pageTitle}
+                            </Title>
+                        )}
+                    </div>
                     <Dropdown menu={{ items: userMenuItems }} trigger={["click"]}>
                         <div style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}>
-                            <Avatar src="https://joeschmoe.io/api/v1/random" size="small" />
+                            <Avatar src={avatarIcon} size="small" />
                             <span>{user ? user.username : "User"}</span>
                         </div>
                     </Dropdown>
                 </Header>
 
-                <Content style={{ padding: 24, minHeight: 360, overflow: 'auto' }}>
+                <Content 
+                    style={{ padding: 24, minHeight: 360, overflow: 'auto' }}
+                    onClick={() => !screens.lg && sidebarOpen && setSidebarOpen(false)}
+                >
                     <Outlet />
                 </Content>
 

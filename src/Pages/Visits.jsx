@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import { Card, Table, Tag, message, Button, Modal, Descriptions, Form, Input, Space } from "antd";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
 const statusColorMap = {
   COMPLETED: "#52c41a",
@@ -39,6 +40,7 @@ const isValidKenyanPhone = (value = "") => {
 };
 
 export default function Visits() {
+  const { setPageTitle } = useContext(TitleContext);
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [numberPlate, setNumberPlate] = useState("");
@@ -57,6 +59,11 @@ export default function Visits() {
   const [manualExitVisitId, setManualExitVisitId] = useState(null);
   const [sendingManualExit, setSendingManualExit] = useState(false);
   const [manualExitForm] = Form.useForm();
+
+  useEffect(() => {
+    setPageTitle("Visits");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const getVisitId = (transaction) => transaction?.visit_id ?? transaction?.Visit?.id;
   const isUnpaid = (transaction) => {
@@ -349,7 +356,7 @@ export default function Visits() {
 
   return (
     <>
-      <Card title="Transactions / Visits" style={{ margin: 24 }}>
+      <Card style={{ margin: 6 }}>
         <Input
           allowClear
           placeholder="Search by number plate"

@@ -1,12 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { Card, Row, Col, DatePicker, Button, message, Table, Tag, Input, Statistic, Modal, Space } from "antd";
 import { DownloadOutlined, EyeOutlined } from "@ant-design/icons";
 import axios from "../helpers/axios";
 import dayjs from "dayjs";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { TitleContext } from "../context/TitleContext";
 
 export default function Confee() {
+  const { setPageTitle } = useContext(TitleContext);
   const [confeeData, setConfeeData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [startDate, setStartDate] = useState(null);
@@ -22,6 +24,11 @@ export default function Confee() {
   });
   const [detailsModalOpen, setDetailsModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState(null);
+
+  useEffect(() => {
+    setPageTitle("Convenience Fees");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const statusMap = {
     0: "Pending",
@@ -252,11 +259,7 @@ export default function Confee() {
   ];
 
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "24px" }}>
-        Convenience Fees Management
-      </div>
-
+    <div style={{ padding: "12px" }}>
       {/* Filter Section */}
       <Card title="Filter Records" style={{ marginBottom: "24px" }}>
         <Row gutter={[16, 16]}>

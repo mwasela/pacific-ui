@@ -1,13 +1,14 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Button, Card, Col, DatePicker, Grid, Input, Row, Select, Segmented, Space, Statistic, Typography, message } from "antd";
+import React, { useEffect, useState, useContext } from "react";
+import { Button, Card, Col, DatePicker, Grid, Row, Space, Statistic, Typography, message } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import logo from "../assets/logo.png";
 import axios from "../helpers/axios";
+import { TitleContext } from "../context/TitleContext";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const toMoney = (value) => {
   const amount = Number(value || 0);
@@ -22,40 +23,11 @@ const loadLogoImage = () =>
     image.src = logo;
   });
 
-const getSummaryPeriodRange = (period) => {
-  const to = dayjs();
-
-  if (period === "24h") {
-    return { from: dayjs().subtract(1, "day"), to, label: "Last 24 Hours" };
-  }
-
-  if (period === "7d") {
-    return { from: dayjs().subtract(1, "week"), to, label: "Last 7 Days" };
-  }
-
-  return { from: dayjs().subtract(1, "month"), to, label: "Last 1 Month" };
-};
-
 export default function Financial() {
+  const { setPageTitle } = useContext(TitleContext);
   const screens = Grid.useBreakpoint();
-  const [loading, setLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(false);
-  const [numberPlateInput, setNumberPlateInput] = useState("");
-  const [numberPlate, setNumberPlate] = useState("");
-  const [dateRange, setDateRange] = useState([dayjs().subtract(30, "day"), dayjs()]);
-  const [paidStatus, setPaidStatus] = useState('0');
-  const [freeVisit, setFreeVisit] = useState(null);
-  const [manualPay, setManualPay] = useState(null);
-  const [visitStatus, setVisitStatus] = useState(null);
   const [summaryDateRange, setSummaryDateRange] = useState([dayjs().subtract(30, "day"), dayjs()]);
-  const [analytics, setAnalytics] = useState({
-    total_revenue: 0,
-    unique_number_plates: 0,
-    number_plate_total_amount: null,
-    raw_visit_records: 0,
-    open_visit_records: 0,
-    closed_visit_records: 0, // Exits
-  });
   const [summaryAnalytics, setSummaryAnalytics] = useState({
     expected_revenue: 0,
     collected_revenue: 0,
@@ -71,177 +43,30 @@ export default function Financial() {
     tenant_exits: 0,
   });
 
-  const filters = useMemo(() => {
-    return {
-      from: dateRange?.[0] ? dateRange[0].format("YYYY-MM-DD") : undefined,
-      to: dateRange?.[1] ? dateRange[1].format("YYYY-MM-DD") : undefined,
-      number_plate: numberPlate?.trim() || undefined,
-      paid_status: paidStatus !== null ? paidStatus : undefined,
-      free_visit: freeVisit !== null ? freeVisit : undefined,
-      manual_pay: manualPay !== null ? manualPay : undefined,
-      visit_status: 0,  // Always filter for closed visits only
-    };
-  }, [dateRange, numberPlate, paidStatus, freeVisit, manualPay]);
+  useEffect(() => {
+    setPageTitle("Financial");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
-  const fetchRevenue = async () => {
-    setLoading(true);
+  const fetchSummaryAnalytics = async () => {
+    setSummaryLoading(true);
     try {
-      const res = await axios.get("/analytics/revenue", { params: filters });
-      setAnalytics({
-        total_revenue: Number(res.data?.total_revenue || 0),
-        raw_visit_records: Number(res.data?.raw_visit_records || 0),
-        open_visit_records: Number(res.data?.open_visit_records || 0),
-        unique_number_plates: Number(res.data?.unique_number_plates || 0),
-        number_plate_total_amount:
-          res.data?.number_plate_total_amount === null ? null : Number(res.data?.number_plate_total_amount || 0),
-        closed_visit_records: Number(res.data?.completed_visit_records || 0),
-      });
+      const params = {
+        from: summaryDateRange?.[0] ? summaryDateRange[0].format("YYYY-MM-DD") : undefined,
+        to: summaryDateRange?.[1] ? summaryDateRange[1].format("YYYY-MM-DD") : undefined,
+      };
+      const res = await axios.get("/analytics/summary", { params });
+      setSummaryAnalytics(res.data);
     } catch (error) {
-      message.error(error.response?.data?.error || "Failed to fetch revenue analytics");
+      message.error(error.response?.data?.error || "Failed to fetch summary analytics");
     } finally {
-      setLoading(false);
+      setSummaryLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchRevenue();
-  }, [filters]);
-
-  // const fetchSummaryAnalytics = async (period = summaryPeriod) => {
-  //   const range = getSummaryPeriodRange(period);
-  //   setSummaryLoading(true);
-
-  //   try {
-  //     const params = {
-  //       from: range.from.format("YYYY-MM-DD"),
-  //       to: range.to.format("YYYY-MM-DD"),
-  //     };
-
-  //     const [totalRes, exitsRes, pendingExitsRes, pendingRes, manualRes, mpesaRes, manualExitsRes, mpesaExitsRes] = await Promise.all([
-  //       axios.get("/analytics/revenue", { params }),
-  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "1" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, paid_status: "1" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, manual_pay: "1" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, mpesa_pay: "1" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, mpesa_pay: "0" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0", manual_pay: "1" } }),
-  //       axios.get("/analytics/revenue", { params: { ...params, visit_status: "0", manual_pay: "0" } }),
-  //     ]);
-
-  //     const manualRevenue = Number(manualRes.data?.total_revenue || 0);
-  //     const mpesaRevenue = Number(mpesaRes.data?.total_revenue || 0);
-  //     const successfulExits = Number(exitsRes.data?.raw_visit_records || 0);
-  //     const manualExits = Number(manualExitsRes.data?.raw_visit_records || 0);
-  //     const mpesaExits = Number(mpesaExitsRes.data?.raw_visit_records || 0);
-
-  //     setSummaryAnalytics({
-  //       expected_revenue: Number(totalRes.data?.total_revenue || 0),
-  //       collected_revenue: manualRevenue + mpesaRevenue,
-  //       successful_exits: successfulExits,
-  //       pending_exits: Number(pendingExitsRes.data?.raw_visit_records || 0),
-  //       pending_amount: Number(pendingRes.data?.total_revenue || 0),
-  //       manual_revenue: manualRevenue,
-  //       mpesa_revenue: mpesaRevenue,
-  //       all_entries: Number(totalRes.data?.raw_visit_records || 0),
-  //       manual_exits: manualExits,
-  //       mpesa_exits: mpesaExits,
-  //     });
-  //   } catch (error) {
-  //     message.error(error.response?.data?.error || "Failed to fetch summary analytics");
-  //   } finally {
-  //     setSummaryLoading(false);
-  //   }
-  // };
 
   useEffect(() => {
     fetchSummaryAnalytics();
   }, [summaryDateRange]);
-
-  const applyNumberPlateFilter = () => {
-    setNumberPlate(numberPlateInput.trim());
-  };
-
-const fetchSummaryAnalytics = async () => {
-  setSummaryLoading(true);
-  try {
-    const params = {
-      from: summaryDateRange?.[0] ? summaryDateRange[0].format("YYYY-MM-DD") : undefined,
-      to: summaryDateRange?.[1] ? summaryDateRange[1].format("YYYY-MM-DD") : undefined,
-    };
-    const res = await axios.get("/analytics/summary", { params });
-    setSummaryAnalytics(res.data);
-  } catch (error) {
-    message.error(error.response?.data?.error || "Failed to fetch summary analytics");
-  } finally {
-    setSummaryLoading(false);
-  }
-};
-
-
-  const handleDownloadPDF = async () => {
-    try {
-      message.loading({ content: "Generating PDF...", key: "pdf" });
-
-      const pdf = new jsPDF({
-        orientation: "p",
-        unit: "mm",
-        format: "a4",
-      });
-
-      const selectedPeriod =
-        dateRange?.[0] && dateRange?.[1]
-          ? `${dateRange[0].format("YYYY-MM-DD")} to ${dateRange[1].format("YYYY-MM-DD")}`
-          : "All Time";
-
-      const logoImage = await loadLogoImage();
-
-      const logoWidth = 35;
-      const logoHeight = (logoImage.naturalHeight / logoImage.naturalWidth) * logoWidth;
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const logoX = pageWidth - 10 - logoWidth;
-      const logoY = 10;
-
-      const metricRows = [
-        ["Total Revenue", `KES ${Number(analytics.total_revenue).toLocaleString()}`],
-        // ["Unique Number Plates", analytics.unique_number_plates.toString()],
-        ["All Entries", analytics.raw_visit_records.toString()],
-        ["Current Vehicles in the Mall", analytics.open_visit_records.toString()],
-        ["Exits", analytics.closed_visit_records.toString()],
-        [
-          "Selected Plate Revenue",
-          analytics.number_plate_total_amount === null
-            ? "N/A"
-            : `KES ${Number(analytics.number_plate_total_amount).toLocaleString()}`,
-        ],
-      ];
-
-      autoTable(pdf, {
-        head: [["Metric", "Value"]],
-        body: metricRows,
-        startY: Math.max(40, logoY + logoHeight + 4),
-        margin: { left: 10, right: 10, top: 10, bottom: 10 },
-        styles: { fontSize: 10, cellPadding: 5 },
-        headStyles: { fillColor: [245, 245, 245], textColor: [0, 0, 0], fontStyle: "bold" },
-      });
-
-      pdf.setFontSize(14);
-      pdf.text("PACIFIC MALL PARKING SERVICES", 10, 15);
-      pdf.setFontSize(12);
-      pdf.text("Financial Analytics Report", 10, 25);
-      pdf.addImage(logoImage, "PNG", logoX, logoY, logoWidth, logoHeight);
-
-      pdf.setFontSize(9);
-      pdf.text(`Period: ${selectedPeriod}`, 10, 35);
-
-      const filename = `financial_report_${dayjs().format("YYYY-MM-DD_HHmmss")}.pdf`;
-      pdf.save(filename);
-      message.success({ content: "PDF downloaded successfully", key: "pdf" });
-    } catch (error) {
-      message.error({ content: "Failed to generate PDF", key: "pdf" });
-      console.error("PDF export error:", error);
-    }
-  };
 
   const handleDownloadSummaryPDF = async () => {
     try {
@@ -257,7 +82,7 @@ const fetchSummaryAnalytics = async () => {
         summaryDateRange?.[0] && summaryDateRange?.[1]
           ? `${summaryDateRange[0].format("YYYY-MM-DD")} to ${summaryDateRange[1].format("YYYY-MM-DD")}`
           : "All Time";
-      
+
       const logoImage = await loadLogoImage();
       const logoWidth = 35;
       const logoHeight = (logoImage.naturalHeight / logoImage.naturalWidth) * logoWidth;
@@ -266,17 +91,16 @@ const fetchSummaryAnalytics = async () => {
       const logoY = 10;
 
       const rows = [
-        // ["Expected Revenue", `KES ${Number(summaryAnalytics.expected_revenue).toLocaleString()}`],
         ["Collected Revenue", `KES ${Number(summaryAnalytics.collected_revenue).toLocaleString()}`],
-        ["Successful Exits", summaryAnalytics.successful_exits.toString()],
-        ["Free Exits", summaryAnalytics.unpaid_exits.toString()],
-        //["Pending Amount", `KES ${Number(summaryAnalytics.pending_amount).toLocaleString()}`],
+        ["Successful Exits", summaryAnalytics.successful_exits?.toString() || "0"],
+        ["Pending Exits", summaryAnalytics.pending_exits?.toString() || "0"],
+        ["Free Exits", summaryAnalytics.unpaid_exits?.toString() || "0"],
+        ["Tenant Exits", summaryAnalytics.tenant_exits?.toString() || "0"],
         ["Manual Revenue", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
         ["Mpesa Revenue", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
-        ["All Entries (Visits)", summaryAnalytics.all_entries.toString()],
-        ["Manual Exits", summaryAnalytics.manual_exits.toString()],
-        ["Mpesa Exits", summaryAnalytics.mpesa_exits.toString()],
-        ["Tenant Exits", summaryAnalytics.tenant_exits.toString()],
+        ["All Entries (Visits)", summaryAnalytics.all_entries?.toString() || "0"],
+        ["Manual Exits", summaryAnalytics.manual_exits?.toString() || "0"],
+        ["Mpesa Exits", summaryAnalytics.mpesa_exits?.toString() || "0"],
       ];
 
       autoTable(pdf, {
@@ -308,15 +132,8 @@ const fetchSummaryAnalytics = async () => {
 
   return (
     <Space direction="vertical" size={16} style={{ width: "100%" }}>
-      {/* <div>
-        <Title level={3} style={{ margin: 0 }}>
-          Financial Analytics
-        </Title>
-        <Text type="secondary">Revenue summary with detailed filters and period reporting</Text>
-      </div> */}
-
       <Space direction="vertical" size={16} style={{ width: "100%" }}>
-        <Card title="Summary Period" loading={summaryLoading}>
+        <Card loading={summaryLoading}>
           <Space
             direction={screens.md ? "horizontal" : "vertical"}
             size={12}
@@ -344,16 +161,8 @@ const fetchSummaryAnalytics = async () => {
           </Text>
         </Card>
 
+        {/* Section 1: Revenue & Exit Status Overview */}
         <Row gutter={[16, 16]}>
-          {/* <Col xs={24} sm={12} lg={8}>
-            <Card loading={summaryLoading}>
-              <Statistic
-                title="Expected Revenue"
-                value={toMoney(summaryAnalytics.expected_revenue)}
-                valueStyle={{ color: "#1d39c4" }}
-              />
-            </Card>
-          </Col> */}
           <Col xs={24} sm={12} lg={8}>
             <Card loading={summaryLoading}>
               <Statistic
@@ -369,6 +178,15 @@ const fetchSummaryAnalytics = async () => {
                 title="Successful Exits"
                 value={summaryAnalytics.successful_exits}
                 valueStyle={{ color: "#722ed1" }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={8}>
+            <Card loading={summaryLoading}>
+              <Statistic
+                title="Pending Exits"
+                value={summaryAnalytics.pending_exits}
+                valueStyle={{ color: "#fa8c16" }}
               />
             </Card>
           </Col>
@@ -392,11 +210,12 @@ const fetchSummaryAnalytics = async () => {
           </Col>
         </Row>
 
+        {/* Section 2: Financial & Entry Totals */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={8}>
             <Card loading={summaryLoading}>
               <Statistic
-                title="Manual Revenue"
+                title="Cash Revenue"
                 value={toMoney(summaryAnalytics.manual_revenue)}
                 valueStyle={{ color: "#d4380d" }}
               />
@@ -422,11 +241,12 @@ const fetchSummaryAnalytics = async () => {
           </Col>
         </Row>
 
+        {/* Section 3: Exit Channels */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12} lg={8}>
             <Card loading={summaryLoading}>
               <Statistic
-                title="Manual Exits"
+                title="Cash Exits"
                 value={summaryAnalytics.manual_exits}
                 valueStyle={{ color: "#cf1322" }}
               />

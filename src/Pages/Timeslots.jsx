@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useContext } from 'react'
 import { Card, Row, Col, DatePicker, Button, message, Space, Statistic } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
 import axios from "../helpers/axios";
@@ -18,8 +18,10 @@ import {
 } from "recharts";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { TitleContext } from "../context/TitleContext";
 
 export default function Timeslots() {
+  const { setPageTitle } = useContext(TitleContext);
   const [chartData, setChartData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fromDate, setFromDate] = useState(null);
@@ -38,6 +40,11 @@ export default function Timeslots() {
     peakIncomeHour: "",
     peakIncomeAmount: 0
   });
+
+  useEffect(() => {
+    setPageTitle("Income Graphs");
+    return () => setPageTitle("");
+  }, [setPageTitle]);
 
   const fetchTimeslotData = async (from = fromDate, to = toDate) => {
     setLoading(true);
@@ -204,8 +211,8 @@ export default function Timeslots() {
   };
 
   return (
-    <div style={{ padding: "24px" }}>
-      <div style={{ fontSize: "24px", fontWeight: "bold", marginBottom: "24px" }}>
+    <div style={{ padding: "12px" }}>
+      <div style={{ fontSize: "18px", fontWeight: "bold", marginBottom: "24px" }}>
         Traffic Reports Per Time Slot
       </div>
 
