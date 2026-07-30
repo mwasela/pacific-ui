@@ -96,10 +96,10 @@ export default function Financial() {
         ["Pending Exits", summaryAnalytics.pending_exits?.toString() || "0"],
         ["Free Exits", summaryAnalytics.unpaid_exits?.toString() || "0"],
         ["Tenant Exits", summaryAnalytics.tenant_exits?.toString() || "0"],
-        ["Manual Revenue", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
-        ["Mpesa Revenue", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
+        ["Cash Collections", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
+        ["Mpesa Collections", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
         ["All Entries (Visits)", summaryAnalytics.all_entries?.toString() || "0"],
-        ["Manual Exits", summaryAnalytics.manual_exits?.toString() || "0"],
+        ["Cash Exits", summaryAnalytics.manual_exits?.toString() || "0"],
         ["Mpesa Exits", summaryAnalytics.mpesa_exits?.toString() || "0"],
       ];
 
