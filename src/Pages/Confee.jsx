@@ -64,22 +64,19 @@ export default function Confee() {
 
       const res = await axios.get("/confee", { params });
       //console.log("Fetched convenience fee data:", res.data);
-      
+
       if (res.data.data && Array.isArray(res.data.data)) {
         const confeeRecords = res.data.data;
         setConfeeData(confeeRecords);
-        
-        // Calculate statistics
-        const totalAmount = confeeRecords.reduce((sum, item) => sum + (item.con_fee || 0), 0);
-        const paidCount = confeeRecords.filter(item => item.status === 1).length;
-        const pendingCount = confeeRecords.filter(item => item.status === 0).length;
-        
+
+        const apiStats = res.data.stats || res.data.summary || {};
+
         setStats({
-          totalFees: res.data.total || confeeRecords.length,
-          totalAmount,
-          averageFee: confeeRecords.length > 0 ? Math.round(totalAmount / confeeRecords.length) : 0,
-          paidCount,
-          pendingCount
+          totalFees: apiStats.totalFees ?? apiStats.totalRecords ?? res.data.total ?? 0,
+          totalAmount: apiStats.totalAmount ?? 0,
+          averageFee: apiStats.averageFee ?? 0,
+          paidCount: apiStats.paidCount ?? res.data.paidCount ?? 0,
+          pendingCount: apiStats.pendingCount ?? res.data.pendingCount ?? 0
         });
 
         // Update pagination with actual total from backend
@@ -152,7 +149,7 @@ export default function Confee() {
       const tableData = confeeData.map(entry => [
         entry.id,
         entry.visit_id,
-        entry.Visit?.number_plate || "N/A",
+        entry.Visit?.vehicle_number || entry.Visit?.number_plate || "N/A",
         `KES ${entry.con_fee}`,
         statusMap[entry.status],
         new Date(entry.createdAt).toLocaleString("en-US", {
@@ -197,10 +194,10 @@ export default function Confee() {
     },
     {
       title: "Number Plate",
-      dataIndex: ["Visit", "number_plate"],
+      dataIndex: ["Visit", "vehicle_number"],
       width: 130,
       key: "number_plate",
-      render: (text) => text || "N/A"
+      render: (_, record) => record?.Visit?.vehicle_number || record?.Visit?.number_plate || "N/A"
     },
     {
       title: "Amount (KES)",
@@ -298,7 +295,7 @@ export default function Confee() {
           </Col>
           <Col xs={24} style={{ display: "flex", gap: "8px" }}>
             <Button type="primary" onClick={handleFilterApply} style={{ flex: 1 }} loading={loading}>
-              Apply Filters
+              Fetch
             </Button>
             <Button onClick={handleClearFilters} style={{ flex: 1 }}>
               Clear Filters
@@ -315,12 +312,12 @@ export default function Confee() {
         </Row>
       </Card>
 
-      {/* Statistics Cards
+
       <Row gutter={[16, 16]} style={{ marginBottom: "24px" }}>
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Statistic
-              title="Total Entries"
+              title="Total Paid Entries"
               value={stats.totalFees}
               valueStyle={{ color: "#1890ff" }}
             />
@@ -335,15 +332,7 @@ export default function Confee() {
             />
           </Card>
         </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card>
-            <Statistic
-              title="Average Fee"
-              value={`KES ${stats.averageFee}`}
-              valueStyle={{ color: "#52c41a" }}
-            />
-          </Card>
-        </Col>
+
         <Col xs={24} sm={12} md={6}>
           <Card>
             <Row gutter={16}>
@@ -364,7 +353,7 @@ export default function Confee() {
             </Row>
           </Card>
         </Col>
-      </Row> */}
+      </Row>
 
       {/* Data Table */}
       <Card title="Convenience Fee Entries" loading={loading}>
@@ -429,7 +418,7 @@ export default function Confee() {
                 </div>
                 <div>
                   <label style={{ fontWeight: 600, color: "#666" }}>Number Plate</label>
-                  <p>{selectedRecord.Visit.number_plate || "N/A"}</p>
+                  <p>{selectedRecord.Visit.vehicle_number || selectedRecord.Visit.number_plate || "N/A"}</p>
                 </div>
                 <div>
                   <label style={{ fontWeight: 600, color: "#666" }}>Visit Entry Time</label>
