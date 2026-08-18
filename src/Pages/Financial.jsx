@@ -92,15 +92,15 @@ export default function Financial() {
 
       const rows = [
         ["Collected Revenue", `KES ${Number(summaryAnalytics.collected_revenue).toLocaleString()}`],
-        ["Successful Exits", summaryAnalytics.successful_exits?.toString() || "0"],
-        ["Pending Exits", summaryAnalytics.pending_exits?.toString() || "0"],
-        ["Free Exits", summaryAnalytics.unpaid_exits?.toString() || "0"],
-        ["Tenant Exits", summaryAnalytics.tenant_exits?.toString() || "0"],
         ["Cash Collections", `KES ${Number(summaryAnalytics.manual_revenue).toLocaleString()}`],
         ["Mpesa Collections", `KES ${Number(summaryAnalytics.mpesa_revenue).toLocaleString()}`],
         ["All Entries (Visits)", summaryAnalytics.all_entries?.toString() || "0"],
+        ["All Exits", summaryAnalytics.successful_exits?.toString() || "0"],
         ["Cash Exits", summaryAnalytics.manual_exits?.toString() || "0"],
         ["Mpesa Exits", summaryAnalytics.mpesa_exits?.toString() || "0"],
+        ["Pending Exits", summaryAnalytics.pending_exits?.toString() || "0"],
+        ["Free Exits", summaryAnalytics.unpaid_exits?.toString() || "0"],
+        ["Tenant Exits", summaryAnalytics.tenant_exits?.toString() || "0"],
       ];
 
       autoTable(pdf, {
